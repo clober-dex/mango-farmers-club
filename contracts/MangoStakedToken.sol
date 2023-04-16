@@ -161,24 +161,29 @@ contract MangoStakedToken is IStakedToken, ERC20, Ownable, Pausable, Initializab
         }
     }
 
-    function supplyReward(address token, uint256 amount) external {
+    function supplyReward(address token, uint256 amount) external returns (uint256 supplyAmount) {
         GlobalRewardSnapshot memory mGlobalRewardSnapshot = _globalRewardSnapshot[token];
         if (mGlobalRewardSnapshot.treasury != msg.sender) {
             revert Errors.MangoError(Errors.ACCESS);
         }
         if (amount == 0) {
-            return;
+            return 0;
         }
         uint256 totalStakedAmount = totalSupply();
         if (totalStakedAmount == 0) {
-            return;
+            return 0;
         }
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        uint256 rewardPerTokenIncrement = (amount * _RATE_PRECISION) / totalStakedAmount;
+        supplyAmount = _divideCeil(rewardPerTokenIncrement * totalStakedAmount, _RATE_PRECISION);
+        if (supplyAmount == 0) {
+            return 0;
+        }
+        IERC20(token).safeTransferFrom(msg.sender, address(this), supplyAmount);
 
-        mGlobalRewardSnapshot.rewardPerToken += (amount * _RATE_PRECISION) / totalStakedAmount;
+        mGlobalRewardSnapshot.rewardPerToken += rewardPerTokenIncrement;
         mGlobalRewardSnapshot.timestamp = uint64(block.timestamp);
 
-        emit DistributeReward(msg.sender, token, amount, mGlobalRewardSnapshot.rewardPerToken, totalStakedAmount);
+        emit DistributeReward(msg.sender, token, supplyAmount, mGlobalRewardSnapshot.rewardPerToken, totalStakedAmount);
         _globalRewardSnapshot[token] = mGlobalRewardSnapshot;
     }
 
@@ -206,5 +211,9 @@ contract MangoStakedToken is IStakedToken, ERC20, Ownable, Pausable, Initializab
             revert Errors.MangoError(Errors.INVALID_ADDRESS);
         }
         IERC20(token).safeTransfer(to, IERC20(token).balanceOf(address(this)));
+    }
+
+    function _divideCeil(uint256 x, uint256 y) private pure returns (uint256) {
+        return (x + y - 1) / y;
     }
 }
