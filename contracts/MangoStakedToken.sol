@@ -15,7 +15,7 @@ import "./utils/Pausable.sol";
 contract MangoStakedToken is IStakedToken, ERC20, Ownable, Pausable, Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    uint256 private constant _RATE_PRECISION = 1e18;
+    uint256 private constant _RATE_PRECISION = 1e27;
 
     address public immutable override underlyingToken;
 
