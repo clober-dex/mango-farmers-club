@@ -20,14 +20,10 @@ contract MockTreasury is ITreasury, Ownable {
 
     uint256 public override lastDistributedAt;
 
-    constructor(
-        address stakedToken_,
-        address rewardToken_,
-        uint256 startsAt_
-    ) {
+    constructor(address stakedToken_, address rewardToken_, uint256 startsAt_) {
         stakedToken = stakedToken_;
         rewardToken = rewardToken_;
-        _rewardTokenDecimalComplement = 10**(18 - IERC20Metadata(rewardToken).decimals());
+        _rewardTokenDecimalComplement = 10 ** (18 - IERC20Metadata(rewardToken).decimals());
         lastDistributedAt = startsAt_;
         setApprovals();
     }
@@ -51,10 +47,12 @@ contract MockTreasury is ITreasury, Ownable {
 
     function distribute() public {
         uint256 amount = getDistributableAmount();
-        IStakedToken(stakedToken).supplyReward(rewardToken, amount);
-        uint256 mLastDistributedAt = lastDistributedAt;
-        lastDistributedAt = block.timestamp;
-        emit Distribute(amount, block.timestamp - mLastDistributedAt);
+        uint256 distributeAmount = IStakedToken(stakedToken).supplyReward(rewardToken, amount);
+        if (distributeAmount > 0) {
+            uint256 mLastDistributedAt = lastDistributedAt;
+            lastDistributedAt = block.timestamp;
+            emit Distribute(distributeAmount, block.timestamp - mLastDistributedAt);
+        }
     }
 
     function receiveToken(uint256 amount) external {

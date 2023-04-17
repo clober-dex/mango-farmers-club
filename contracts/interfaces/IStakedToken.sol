@@ -59,7 +59,7 @@ interface IStakedToken is IERC20Metadata {
 
     function harvest(address user, address[] calldata tokenList) external;
 
-    function supplyReward(address rewardToken, uint256 amount) external;
+    function supplyReward(address rewardToken, uint256 amount) external returns (uint256);
 
     function addRewardToken(address rewardToken, address treasury) external;
 
