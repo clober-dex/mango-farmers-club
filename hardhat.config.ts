@@ -14,7 +14,7 @@ import 'hardhat-abi-exporter'
 import 'solidity-coverage'
 import '@nomiclabs/hardhat-etherscan'
 // eslint-disable-next-line import/order
-import { polygonZkEvmTestnet, polygonZkEvm } from '@wagmi/chains'
+import { polygonZkEvmTestnet, polygonZkEvm, hardhat } from '@wagmi/chains'
 
 dotenv.config()
 
@@ -139,12 +139,12 @@ const config: HardhatConfig = {
       tags: ['testnet', 'dev'],
       companionNetworks: {},
     },
-    hardhat: {
-      chainId: 1337,
+    [hardhat.network]: {
+      chainId: hardhat.id,
       gas: 20000000,
       gasPrice: 250000000000,
       gasMultiplier: 1,
-      hardfork: 'london',
+      hardfork: 'shanghai',
       // @ts-ignore
       // forking: {
       //   enabled: true,
