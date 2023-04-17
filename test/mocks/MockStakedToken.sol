@@ -8,7 +8,17 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract MockStakedToken {
     using SafeERC20 for IERC20;
 
-    function supplyReward(address token, uint256 amount) external {
+    uint256 receiveAmount = type(uint256).max;
+
+    function setReceiveAmount(uint256 amount) external {
+        receiveAmount = amount;
+    }
+
+    function supplyReward(address token, uint256 amount) external returns (uint256) {
+        if (receiveAmount < amount) {
+            amount = receiveAmount;
+        }
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        return amount;
     }
 }

@@ -14,6 +14,7 @@ import "../Constants.sol";
 
 contract MangoStakedTokenIntegrationTest is Test {
     address PROXY_ADMIN = address(0x1231241);
+    uint256 constant _BUF = 10 ** 10;
 
     MockUSDC usdc;
     ERC20 mangoToken;
@@ -23,7 +24,7 @@ contract MangoStakedTokenIntegrationTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC(10000000000);
-        mangoToken = new MockToken(10000000000 * 10**18);
+        mangoToken = new MockToken(10000000000 * 10 ** 18);
         startsAt = block.timestamp + 100;
         address stakedTokenLogic = address(new MangoStakedToken(address(mangoToken)));
         stakedToken = MangoStakedToken(
@@ -117,16 +118,16 @@ contract MangoStakedTokenIntegrationTest is Test {
 
     function testWhenTreasuryHasBalanceBeforeStart() public {
         assertLt(block.timestamp, treasury.lastDistributedAt(), "STARTS_AT");
-        treasury.receiveToken(10**6);
+        treasury.receiveToken(10 ** 6);
 
         // check treasury view functions
-        assertEq(usdc.balanceOf(address(treasury)), 10**6, "TREASURY_BALANCE");
+        assertEq(usdc.balanceOf(address(treasury)), 10 ** 6, "TREASURY_BALANCE");
         assertEq(treasury.lastDistributedAt(), startsAt, "LAST_DISTRIBUTED_AT");
         assertEq(treasury.getDistributableAmount(), 0, "DISTRIBUTABLE_AMOUNT");
 
         // plant
         _assertEmptyReward(address(this));
-        _plantWithBalanceCheck(address(this), 10**18);
+        _plantWithBalanceCheck(address(this), 10 ** 18);
         vm.warp(startsAt - 1);
 
         // harvest
@@ -135,18 +136,18 @@ contract MangoStakedTokenIntegrationTest is Test {
 
         // unplant
         _assertEmptyReward(address(this));
-        _unplantWithBalanceCheck(address(this), 10**18);
+        _unplantWithBalanceCheck(address(this), 10 ** 18);
 
         _assertEmptyReward(address(this));
-        assertEq(usdc.balanceOf(address(treasury)), 10**6, "END_TREASURY_BALANCE");
+        assertEq(usdc.balanceOf(address(treasury)), 10 ** 6, "END_TREASURY_BALANCE");
         assertEq(usdc.balanceOf(address(stakedToken)), 0, "END_STAKED_TOKEN_BALANCE");
     }
 
     function testWhenTreasuryHasBalanceAtStartTime() public {
         assertLt(block.timestamp, treasury.lastDistributedAt(), "STARTS_AT");
-        treasury.receiveToken(10**6);
+        treasury.receiveToken(10 ** 6);
 
-        _plantWithBalanceCheck(address(this), 10**18);
+        _plantWithBalanceCheck(address(this), 10 ** 18);
         vm.warp(startsAt);
 
         // harvest
@@ -155,29 +156,29 @@ contract MangoStakedTokenIntegrationTest is Test {
 
         // unplant
         _assertEmptyReward(address(this));
-        _unplantWithBalanceCheck(address(this), 10**18);
+        _unplantWithBalanceCheck(address(this), 10 ** 18);
 
         _assertEmptyReward(address(this));
-        assertEq(usdc.balanceOf(address(treasury)), 10**6, "END_TREASURY_BALANCE");
+        assertEq(usdc.balanceOf(address(treasury)), 10 ** 6, "END_TREASURY_BALANCE");
         assertEq(usdc.balanceOf(address(stakedToken)), 0, "END_STAKED_TOKEN_BALANCE");
     }
 
     function testWhenTreasuryDoesNotHaveBalanceAfterStart() public {
         vm.warp(startsAt + 1000);
 
-        _plantWithBalanceCheck(address(this), 10**18);
+        _plantWithBalanceCheck(address(this), 10 ** 18);
         vm.warp(startsAt + 5000);
 
         _assertEmptyReward(address(this));
         _harvestWithApproxBalanceCheck(address(this), 0);
 
-        _unplantWithBalanceCheck(address(this), 10**18);
+        _unplantWithBalanceCheck(address(this), 10 ** 18);
 
         _assertEmptyReward(address(this));
     }
 
     function testAfterStart() public {
-        uint256 initialAmount = 100 * 10**6;
+        uint256 initialAmount = 100 * 10 ** 6;
         treasury.receiveToken(initialAmount);
         vm.warp(startsAt + 1000);
 
@@ -185,10 +186,10 @@ contract MangoStakedTokenIntegrationTest is Test {
         assertEq(usdcReward0, (initialAmount * 1000) / Constants.REWARD_RATE_RECIPROCAL, "DISTRIBUTABLE_0");
 
         // The first planter will take all rewards
-        _plantWithBalanceCheck(Constants.USER_A_ADDRESS, 10**18);
+        _plantWithBalanceCheck(Constants.USER_A_ADDRESS, 10 ** 18);
         _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward0);
         // 0 reward at planted block.
-        _plantWithBalanceCheck(Constants.USER_B_ADDRESS, 10**18);
+        _plantWithBalanceCheck(Constants.USER_B_ADDRESS, 10 ** 18);
         _assertEmptyReward(Constants.USER_B_ADDRESS);
 
         _harvestWithApproxBalanceCheck(Constants.USER_A_ADDRESS, usdcReward0);
@@ -207,7 +208,7 @@ contract MangoStakedTokenIntegrationTest is Test {
 
         _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward1 / 2);
         _assertApproxReward(Constants.USER_B_ADDRESS, usdcReward1 / 2);
-        _plantWithBalanceCheck(Constants.USER_A_ADDRESS, 10**18); // A:B = 2:1
+        _plantWithBalanceCheck(Constants.USER_A_ADDRESS, 10 ** 18); // A:B = 2:1
         _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward1 / 2);
         _assertApproxReward(Constants.USER_B_ADDRESS, usdcReward1 / 2);
 
@@ -215,21 +216,36 @@ contract MangoStakedTokenIntegrationTest is Test {
         vm.warp(block.timestamp + 500);
         uint256 usdcReward2 = (usdc.balanceOf(address(treasury)) * 500) / Constants.REWARD_RATE_RECIPROCAL;
         assertEq(usdcReward2, treasury.getDistributableAmount(), "DISTRIBUTABLE_3"); // 578
-        _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward1 / 2 + (usdcReward2 * 2) / 3);
-        _assertApproxReward(Constants.USER_B_ADDRESS, usdcReward1 / 2 + usdcReward2 / 3);
-        _unplantWithBalanceCheck(Constants.USER_B_ADDRESS, 10**18); // A:B = 2:0
-        _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward1 / 2 + (usdcReward2 * 2) / 3);
-        _assertApproxReward(Constants.USER_B_ADDRESS, usdcReward1 / 2 + usdcReward2 / 3);
+        _assertApproxReward(
+            Constants.USER_A_ADDRESS,
+            ((usdcReward1 * _BUF) / 2 + ((usdcReward2 * 2) * _BUF) / 3) / _BUF
+        );
+        _assertApproxReward(Constants.USER_B_ADDRESS, ((usdcReward1 * _BUF) / 2 + (usdcReward2 * _BUF) / 3) / _BUF);
+        _unplantWithBalanceCheck(Constants.USER_B_ADDRESS, 10 ** 18); // A:B = 2:0
+        _assertApproxReward(
+            Constants.USER_A_ADDRESS,
+            ((usdcReward1 * _BUF) / 2 + ((usdcReward2 * 2) * _BUF) / 3) / _BUF
+        );
+        _assertApproxReward(Constants.USER_B_ADDRESS, ((usdcReward1 * _BUF) / 2 + (usdcReward2 * _BUF) / 3) / _BUF);
 
         vm.warp(block.timestamp + 2000);
         uint256 usdcReward3 = (usdc.balanceOf(address(treasury)) * 2000) / Constants.REWARD_RATE_RECIPROCAL;
         assertEq(usdcReward3, treasury.getDistributableAmount(), "DISTRIBUTABLE_4");
-        _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward1 / 2 + (usdcReward2 * 2) / 3 + usdcReward3);
-        _assertApproxReward(Constants.USER_B_ADDRESS, usdcReward1 / 2 + usdcReward2 / 3);
-        _harvestWithApproxBalanceCheck(Constants.USER_B_ADDRESS, usdcReward1 / 2 + usdcReward2 / 3);
-        _assertApproxReward(Constants.USER_A_ADDRESS, usdcReward1 / 2 + (usdcReward2 * 2) / 3 + usdcReward3);
+        _assertApproxReward(
+            Constants.USER_A_ADDRESS,
+            ((usdcReward1 * _BUF) / 2 + ((usdcReward2 * 2) * _BUF) / 3 + usdcReward3 * _BUF) / _BUF
+        );
+        _assertApproxReward(Constants.USER_B_ADDRESS, ((usdcReward1 * _BUF) / 2 + (usdcReward2 * _BUF) / 3) / _BUF);
+        _harvestWithApproxBalanceCheck(
+            Constants.USER_B_ADDRESS,
+            ((usdcReward1 * _BUF) / 2 + (usdcReward2 * _BUF) / 3) / _BUF
+        );
+        _assertApproxReward(
+            Constants.USER_A_ADDRESS,
+            ((usdcReward1 * _BUF) / 2 + ((usdcReward2 * 2) * _BUF) / 3 + usdcReward3 * _BUF) / _BUF
+        );
         _assertEmptyReward(Constants.USER_B_ADDRESS);
-        _plantWithBalanceCheck(Constants.USER_B_ADDRESS, 10**18); // A:B = 2:1
+        _plantWithBalanceCheck(Constants.USER_B_ADDRESS, 10 ** 18); // A:B = 2:1
 
         vm.warp(block.timestamp + 1000);
         uint256 currentTreasuryBalance = usdc.balanceOf(address(treasury));
@@ -239,21 +255,42 @@ contract MangoStakedTokenIntegrationTest is Test {
 
         _assertApproxReward(
             Constants.USER_A_ADDRESS,
-            usdcReward1 / 2 + (usdcReward2 * 2) / 3 + usdcReward3 + (usdcReward4 * 2) / 3
+            ((usdcReward1 * _BUF) /
+                2 +
+                ((usdcReward2 * 2) * _BUF) /
+                3 +
+                usdcReward3 *
+                _BUF +
+                ((usdcReward4 * 2) * _BUF) /
+                3) / _BUF
         );
         _assertApproxReward(Constants.USER_B_ADDRESS, usdcReward4 / 3);
         _harvestWithApproxBalanceCheck(Constants.USER_B_ADDRESS, usdcReward4 / 3);
         _assertApproxReward(
             Constants.USER_A_ADDRESS,
-            usdcReward1 / 2 + (usdcReward2 * 2) / 3 + usdcReward3 + (usdcReward4 * 2) / 3
+            ((usdcReward1 * _BUF) /
+                2 +
+                ((usdcReward2 * 2) * _BUF) /
+                3 +
+                usdcReward3 *
+                _BUF +
+                ((usdcReward4 * 2) * _BUF) /
+                3) / _BUF
         );
         _assertEmptyReward(Constants.USER_B_ADDRESS);
 
         _harvestWithApproxBalanceCheck(
             Constants.USER_A_ADDRESS,
-            usdcReward1 / 2 + (usdcReward2 * 2) / 3 + usdcReward3 + (usdcReward4 * 2) / 3
+            ((usdcReward1 * _BUF) /
+                2 +
+                ((usdcReward2 * 2) * _BUF) /
+                3 +
+                usdcReward3 *
+                _BUF +
+                ((usdcReward4 * 2) * _BUF) /
+                3) / _BUF
         );
-        _unplantWithBalanceCheck(Constants.USER_A_ADDRESS, 2 * 10**18); // A:B = 0:1
+        _unplantWithBalanceCheck(Constants.USER_A_ADDRESS, 2 * 10 ** 18); // A:B = 0:1
 
         // treasury usdc balance check
         assertEq(usdc.balanceOf(address(treasury)), currentTreasuryBalance - usdcReward4 + initialAmount);
