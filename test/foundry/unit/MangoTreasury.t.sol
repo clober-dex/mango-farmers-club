@@ -18,7 +18,7 @@ contract MangoTreasuryUnitTest is Test {
     event Receive(address indexed sender, uint256 amount);
 
     uint256 constant REWARD_RATE_RECIPROCAL = 1000 * 1 days;
-    uint256 public constant INITIAL_USDC_SUPPLY = 1_000_000_000 * (10**6);
+    uint256 public constant INITIAL_USDC_SUPPLY = 1_000_000_000 * (10 ** 6);
     uint256 public constant TREASURY_REWARD_STARTS_AT = 100;
     uint256 public constant INITIAL_BLOCK_TIMESTAMP = 10;
     address constant PROXY_ADMIN = address(0x1231241);
@@ -41,6 +41,10 @@ contract MangoTreasuryUnitTest is Test {
                 )
             )
         );
+    }
+
+    function _divideCeil(uint256 x, uint256 y) private pure returns (uint256) {
+        return (x + y - 1) / y;
     }
 
     function testInitialize() public {
@@ -79,7 +83,7 @@ contract MangoTreasuryUnitTest is Test {
     }
 
     function testDistribute() public {
-        uint256 usdcBalance = 10000 * 10**6;
+        uint256 usdcBalance = 10000 * 10 ** 6;
         usdcToken.transfer(address(mangoUsdcTreasury), usdcBalance);
         uint256 current = TREASURY_REWARD_STARTS_AT + 10;
         vm.warp(current);
@@ -140,6 +144,32 @@ contract MangoTreasuryUnitTest is Test {
         );
     }
 
+    function testDistributeWhenStakedTokenReceivesPartially() public {
+        uint256 usdcBalance = 10000 * 10 ** 6;
+        usdcToken.transfer(address(mangoUsdcTreasury), usdcBalance);
+        uint256 current = TREASURY_REWARD_STARTS_AT + 10;
+        vm.warp(current);
+
+        assertEq(mangoUsdcTreasury.lastDistributedAt(), TREASURY_REWARD_STARTS_AT);
+        assertEq(usdcToken.balanceOf(address(mangoUsdcTreasury)), usdcBalance);
+        assertEq(usdcToken.balanceOf(address(mangoStakedToken)), 0);
+
+        uint256 expectedDistributeAmount = (usdcBalance * 10) / REWARD_RATE_RECIPROCAL;
+
+        // Make Situation that staked token cannot receive full tokens
+        MockStakedToken(address(mangoStakedToken)).setReceiveAmount(expectedDistributeAmount / 2);
+        expectedDistributeAmount /= 2;
+
+        vm.expectEmit(false, false, false, true);
+        emit Distribute(expectedDistributeAmount, current - TREASURY_REWARD_STARTS_AT);
+        // distribute expectedDistributeAmount
+        mangoUsdcTreasury.distribute();
+
+        assertEq(mangoUsdcTreasury.lastDistributedAt(), current);
+        assertEq(usdcToken.balanceOf(address(mangoUsdcTreasury)), usdcBalance - expectedDistributeAmount);
+        assertEq(usdcToken.balanceOf(address(mangoStakedToken)), expectedDistributeAmount);
+    }
+
     function testDistributeWhenPaused() public {
         mangoUsdcTreasury.pause();
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.PAUSED));
@@ -147,10 +177,10 @@ contract MangoTreasuryUnitTest is Test {
     }
 
     function testReceiveToken() public {
-        uint256 usdcBalance = 10000 * 10**6;
+        uint256 usdcBalance = 10000 * 10 ** 6;
         usdcToken.transfer(address(mangoUsdcTreasury), usdcBalance);
         uint256 current = TREASURY_REWARD_STARTS_AT + 10;
-        uint256 amount = 10 * (10**6);
+        uint256 amount = 10 * (10 ** 6);
         vm.warp(current);
 
         assertEq(usdcToken.balanceOf(address(mangoUsdcTreasury)), usdcBalance);
