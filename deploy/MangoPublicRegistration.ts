@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
-import { polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
+import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
 
 import { PUBLIC_REGISTRATION_START_TIME, TOKEN } from '../utils/constant'
 
@@ -9,6 +9,7 @@ const deployFunction: DeployFunction = async function (
 ) {
   const { deployments, getNamedAccounts, network } = hre
   if (
+    network.config.chainId !== hardhat.id &&
     network.config.chainId !== polygonZkEvm.id &&
     network.config.chainId !== polygonZkEvmTestnet.id
   ) {
@@ -25,6 +26,15 @@ const deployFunction: DeployFunction = async function (
       TOKEN[network.config.chainId].MANGO,
       TOKEN[network.config.chainId].USDC,
     ],
+    proxy: {
+      proxyContract: 'OpenZeppelinTransparentProxy',
+      execute: {
+        init: {
+          methodName: 'initialize',
+          args: [],
+        },
+      },
+    },
     log: true,
   })
 }
