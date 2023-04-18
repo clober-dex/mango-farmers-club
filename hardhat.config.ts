@@ -12,7 +12,6 @@ import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
 import 'solidity-coverage'
-import '@nomiclabs/hardhat-etherscan'
 // eslint-disable-next-line import/order
 import { polygonZkEvmTestnet, polygonZkEvm, hardhat } from '@wagmi/chains'
 
@@ -93,19 +92,6 @@ const config: HardhatConfig = {
     outDir: 'typechain',
     target: 'ethers-v5',
   },
-  etherscan: {
-    apiKey: { [polygonZkEvm.id]: 'API_KEY' },
-    customChains: [
-      {
-        network: polygonZkEvm.id.toString(),
-        chainId: polygonZkEvm.id,
-        urls: {
-          apiURL: 'https://api-zkevm.polygonscan.com/api',
-          browserURL: 'https://zkevm.polygonscan.com',
-        },
-      },
-    ],
-  },
   defaultNetwork: 'hardhat',
   networks: {
     [polygonZkEvm.id]: {
@@ -121,6 +107,12 @@ const config: HardhatConfig = {
       saveDeployments: true,
       tags: ['mainnet', 'prod'],
       companionNetworks: {},
+      verify: {
+        etherscan: {
+          apiKey: process.env.ZKEVM_POLYGONSCAN_API_KEY,
+          apiUrl: 'https://api-zkevm.polygonscan.com',
+        },
+      },
     },
     [polygonZkEvmTestnet.id]: {
       url: 'https://rpc.public.zkevm-test.net/',
