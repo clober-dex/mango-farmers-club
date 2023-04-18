@@ -27,21 +27,22 @@ contract MangoStakedToken is IStakedToken, ERC20, Ownable, Pausable, Initializab
 
     modifier updateReward(address user) {
         {
-            uint256 totalStakedAmount = totalSupply();
-            uint256 userBalance = balanceOf(user);
-            address[] memory mRewardTokens = _rewardTokens;
-            for (uint256 i = 0; i < mRewardTokens.length; ++i) {
-                address token = mRewardTokens[i];
-                address treasury = _globalRewardSnapshot[token].treasury;
-                if (totalStakedAmount > 0 && block.timestamp > ITreasury(treasury).lastDistributedAt()) {
-                    ITreasury(treasury).distribute();
-                }
-                if (user != address(0)) {
-                    uint256 globalRewardPerToken = _globalRewardSnapshot[token].rewardPerToken;
-                    _userRewardSnapshot[user][token] = UserRewardSnapshot({
-                        rewardPerToken: globalRewardPerToken,
-                        harvestableReward: _harvestableReward(user, token, globalRewardPerToken, userBalance)
-                    });
+            if (totalSupply() > 0) {
+                uint256 userBalance = balanceOf(user);
+                address[] memory mRewardTokens = _rewardTokens;
+                for (uint256 i = 0; i < mRewardTokens.length; ++i) {
+                    address token = mRewardTokens[i];
+                    address treasury = _globalRewardSnapshot[token].treasury;
+                    if (block.timestamp > ITreasury(treasury).lastDistributedAt()) {
+                        ITreasury(treasury).distribute();
+                    }
+                    if (user != address(0)) {
+                        uint256 globalRewardPerToken = _globalRewardSnapshot[token].rewardPerToken;
+                        _userRewardSnapshot[user][token] = UserRewardSnapshot({
+                            rewardPerToken: globalRewardPerToken,
+                            harvestableReward: _harvestableReward(user, token, globalRewardPerToken, userBalance)
+                        });
+                    }
                 }
             }
         }
