@@ -65,7 +65,7 @@ contract MangoBondPool is
         if (_market.baseToken() != underlyingToken_) {
             revert Errors.MangoError(Errors.INVALID_ADDRESS);
         }
-        // change needed if market policy change to allow positive makerFee
+        // change needed if market policy change to allow non-zero makerFee
         if (_market.makerFee() != 0) {
             revert Errors.MangoError(Errors.INVALID_FEE);
         }
