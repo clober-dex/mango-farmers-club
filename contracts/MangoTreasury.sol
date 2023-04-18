@@ -57,14 +57,12 @@ contract MangoTreasury is ITreasury, Initializable, Ownable, Pausable, Reentranc
     }
 
     function distribute() public nonReentrant whenNotPaused {
-        uint256 amount = getDistributableAmount();
-        if (amount > 0) {
+        if (block.timestamp > lastDistributedAt) {
+            uint256 amount = getDistributableAmount();
             uint256 distributeAmount = IStakedToken(stakedToken).supplyReward(rewardToken, amount);
-            if (distributeAmount > 0) {
-                uint256 mLastDistributedAt = lastDistributedAt;
-                lastDistributedAt = block.timestamp;
-                emit Distribute(distributeAmount, block.timestamp - mLastDistributedAt);
-            }
+            uint256 mLastDistributedAt = lastDistributedAt;
+            lastDistributedAt = block.timestamp;
+            emit Distribute(distributeAmount, block.timestamp - mLastDistributedAt);
         }
     }
 
