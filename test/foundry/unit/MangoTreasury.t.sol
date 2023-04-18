@@ -144,6 +144,36 @@ contract MangoTreasuryUnitTest is Test {
         );
     }
 
+    function testDistributeInSameBlock() public {
+        uint256 usdcBalance = 10000 * 10 ** 6;
+        usdcToken.transfer(address(mangoUsdcTreasury), usdcBalance);
+        uint256 current = TREASURY_REWARD_STARTS_AT + 10;
+        vm.warp(current);
+
+        uint256 count = MockStakedToken(address(mangoStakedToken)).supplyCount();
+        mangoUsdcTreasury.distribute();
+        assertEq(MockStakedToken(address(mangoStakedToken)).supplyCount(), count + 1, "COUNT_0");
+        mangoUsdcTreasury.distribute();
+        assertEq(MockStakedToken(address(mangoStakedToken)).supplyCount(), count + 1, "COUNT_1");
+    }
+
+    function testDistributeWhenDistributableAmountIsZero() public {
+        uint256 usdcBalance = 10000 * 10 ** 6;
+        usdcToken.transfer(address(mangoUsdcTreasury), usdcBalance);
+        uint256 current = TREASURY_REWARD_STARTS_AT + 10;
+        vm.warp(current);
+
+        uint256 count = MockStakedToken(address(mangoStakedToken)).supplyCount();
+        mangoUsdcTreasury.distribute();
+        assertEq(MockStakedToken(address(mangoStakedToken)).supplyCount(), count + 1, "COUNT_0");
+        MockStakedToken(address(mangoStakedToken)).setReceiveAmount(0);
+        vm.warp(block.timestamp + 100);
+        vm.expectEmit(false, false, false, true);
+        emit Distribute(0, 100);
+        mangoUsdcTreasury.distribute();
+        assertEq(MockStakedToken(address(mangoStakedToken)).supplyCount(), count + 2, "COUNT_1");
+    }
+
     function testDistributeWhenStakedTokenReceivesPartially() public {
         uint256 usdcBalance = 10000 * 10 ** 6;
         usdcToken.transfer(address(mangoUsdcTreasury), usdcBalance);
