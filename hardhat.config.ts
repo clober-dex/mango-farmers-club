@@ -109,7 +109,7 @@ const config: HardhatConfig = {
       companionNetworks: {},
       verify: {
         etherscan: {
-          apiKey: 'API_KEY',
+          apiKey: process.env.ZKEVM_POLYGONSCAN_API_KEY,
           apiUrl: 'https://api-zkevm.polygonscan.com',
         },
       },
