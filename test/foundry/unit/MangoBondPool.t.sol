@@ -239,6 +239,11 @@ contract MangoBondPoolUnitTest is Test {
         bondPool.changePriceSampleSize(10);
     }
 
+    function testGetBasisPriceIndexWhenZeroSize() public {
+        bondPool.changePriceSampleSize(0);
+        assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
+    }
+
     function testGetBasisPriceIndexWhenEmpty() public {
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
 

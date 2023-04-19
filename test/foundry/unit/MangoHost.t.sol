@@ -100,6 +100,14 @@ contract MangoHostUnitTest is Test {
         assertEq(usdcToken.allowance(address(mangoHost), receiver), type(uint256).max, "AFTER");
     }
 
+    function testDistributeZeroAmount() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdcToken);
+        uint256 callCount = MockTokenReceiver(address(mangoHost.tokenReceiver(address(usdcToken)))).callCount();
+        mangoHost.distributeTokens(tokens);
+        assertEq(MockTokenReceiver(address(mangoHost.tokenReceiver(address(usdcToken)))).callCount(), callCount);
+    }
+
     function testDistributeTokensTwoValidToken() public {
         uint256 amount = 1000 * (10 ** 6);
         usdcToken.transfer(address(mangoHost), amount);
