@@ -37,6 +37,7 @@ contract MangoTreasury is ITreasury, Initializable, Ownable, Pausable, Reentranc
     }
 
     function setApprovals() public {
+        IERC20(rewardToken).safeApprove(stakedToken, 0);
         IERC20(rewardToken).safeApprove(stakedToken, type(uint256).max);
     }
 

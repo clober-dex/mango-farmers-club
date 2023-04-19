@@ -23,7 +23,7 @@ contract MangoBondPoolUnitTest is Test {
     );
 
     uint256 public constant CANCEL_FEE = 200000; // 20%
-    uint256 public constant MAX_RELEASE_AMOUNT = 500_000_000 * (10**18);
+    uint256 public constant MAX_RELEASE_AMOUNT = 500_000_000 * (10 ** 18);
     uint256 public constant RELEASE_RATE_PER_SECOND = 11574074074074073088; // MAX_RELEASE_AMOUNT // (60 * 60 * 24 * 500)
     address public constant BURN_ADDRESS = address(0xdead);
     uint16 public constant INITIAL_BOND_PRICE_INDEX = 219; // log_1.01(0.000089 / 0.00001)
@@ -37,15 +37,12 @@ contract MangoBondPoolUnitTest is Test {
 
     // Mango
     address treasury;
+    address bondPoolLogic;
     MangoBondPool bondPool;
     ERC20 mangoToken;
     ERC20 usdcToken;
 
-    function _createLimitOrder(
-        bool isBid,
-        uint16 priceIndex,
-        uint64 rawAmount
-    ) private returns (uint256) {
+    function _createLimitOrder(bool isBid, uint16 priceIndex, uint64 rawAmount) private returns (uint256) {
         if (isBid) {
             return
                 router.limitBid(
@@ -88,7 +85,7 @@ contract MangoBondPoolUnitTest is Test {
         mangoToken = ERC20(Constants.MANGO_ADDRESS);
         usdcToken = ERC20(Constants.USDC_ADDRESS);
 
-        address bondPoolLogic = address(
+        bondPoolLogic = address(
             new MangoBondPool(
                 treasury,
                 BURN_ADDRESS,
@@ -112,11 +109,44 @@ contract MangoBondPoolUnitTest is Test {
         usdcToken.approve(address(bondPool), type(uint256).max);
 
         // set user USDC balance
-        usdcToken.transfer(Constants.USER_A_ADDRESS, 1000 * (10**6));
+        usdcToken.transfer(Constants.USER_A_ADDRESS, 1000 * (10 ** 6));
         vm.startPrank(Constants.USER_A_ADDRESS);
         usdcToken.approve(address(bondPool), type(uint256).max);
         usdcToken.approve(address(router), type(uint256).max);
         vm.stopPrank();
+    }
+
+    function testInitialize() public {
+        MangoBondPool uninitializedBondPool = MangoBondPool(
+            address(new TransparentUpgradeableProxy(bondPoolLogic, PROXY_ADMIN, new bytes(0)))
+        );
+
+        assertEq(uninitializedBondPool.minBonus(), 0, "BEFORE_MIN_BONUS");
+        assertEq(uninitializedBondPool.maxBonus(), 0, "BEFORE_MAX_BONUS");
+        assertEq(uninitializedBondPool.lastReleasedAt(), 0, "BEFORE_LAST_RELEASED_AT");
+        assertEq(uninitializedBondPool.sampleSize(), 0, "BEFORE_SAMPLE_SIZE");
+        assertEq(uninitializedBondPool.owner(), address(0), "BEFORE_OWNER");
+        assertEq(usdcToken.allowance(address(uninitializedBondPool), treasury), 0, "BEFORE_ALLOWANCE");
+        address initializer = address(0x1111);
+        vm.prank(initializer);
+        uninitializedBondPool.initialize(5, 15, uint64(block.timestamp), 10);
+        assertEq(uninitializedBondPool.minBonus(), 5, "AFTER_MIN_BONUS");
+        assertEq(uninitializedBondPool.maxBonus(), 15, "AFTER_MAX_BONUS");
+        assertEq(uninitializedBondPool.lastReleasedAt(), block.timestamp, "AFTER_LAST_RELEASED_AT");
+        assertEq(uninitializedBondPool.sampleSize(), 10, "AFTER_SAMPLE_SIZE");
+        assertEq(uninitializedBondPool.owner(), initializer, "AFTER_OWNER");
+        assertEq(usdcToken.allowance(address(uninitializedBondPool), treasury), type(uint256).max, "AFTER_ALLOWANCE");
+
+        vm.expectRevert("Initializable: contract is already initialized");
+        uninitializedBondPool.initialize(5, 15, uint64(block.timestamp), 10);
+    }
+
+    function testSetApprovals() public {
+        vm.prank(address(bondPool));
+        usdcToken.decreaseAllowance(treasury, type(uint256).max / 2);
+        assertGt(usdcToken.allowance(address(bondPool), treasury), 0, "BEFORE");
+        bondPool.setApprovals();
+        assertEq(usdcToken.allowance(address(bondPool), treasury), type(uint256).max, "AFTER");
     }
 
     function testDoubleInitialization() public {
@@ -133,7 +163,7 @@ contract MangoBondPoolUnitTest is Test {
         vm.warp(block.timestamp + 10);
         assertEq(bondPool.availableAmount(), RELEASE_RATE_PER_SECOND * 10);
 
-        uint256 soldAmount = 10**18;
+        uint256 soldAmount = 10 ** 18;
         mangoToken.transfer(address(bondPool), soldAmount);
 
         vm.prank(Constants.MANGO_USDC_MARKET_ADDRESS);
@@ -157,8 +187,8 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testWithdrawLostERC20() public {
-        mangoToken.transfer(address(bondPool), 10**18);
-        usdcToken.transfer(address(bondPool), 10**6);
+        mangoToken.transfer(address(bondPool), 10 ** 18);
+        usdcToken.transfer(address(bondPool), 10 ** 6);
 
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INVALID_ADDRESS));
         bondPool.withdrawLostERC20(address(mangoToken), address(this));
@@ -166,8 +196,8 @@ contract MangoBondPoolUnitTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INVALID_ADDRESS));
         bondPool.withdrawLostERC20(address(usdcToken), address(this));
 
-        MockToken mockToken = new MockToken(10000 * 10**18);
-        mockToken.transfer(address(bondPool), 10000 * 10**18);
+        MockToken mockToken = new MockToken(10000 * 10 ** 18);
+        mockToken.transfer(address(bondPool), 10000 * 10 ** 18);
 
         vm.prank(Constants.USER_A_ADDRESS);
         vm.expectRevert("Ownable: caller is not the owner");
@@ -175,7 +205,7 @@ contract MangoBondPoolUnitTest is Test {
 
         uint256 beforeBalance = mockToken.balanceOf(address(this));
         bondPool.withdrawLostERC20(address(mockToken), address(this));
-        assertEq(mockToken.balanceOf(address(this)), beforeBalance + 10000 * 10**18);
+        assertEq(mockToken.balanceOf(address(this)), beforeBalance + 10000 * 10 ** 18);
     }
 
     function testChangeBonusRange() public {
@@ -210,16 +240,16 @@ contract MangoBondPoolUnitTest is Test {
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
 
         vm.warp(block.timestamp + 1);
-        _createLimitOrder({isBid: true, priceIndex: 8000, rawAmount: 10**6});
-        _createLimitOrder({isBid: false, priceIndex: 8000, rawAmount: 10**6});
+        _createLimitOrder({isBid: true, priceIndex: 8000, rawAmount: 10 ** 6});
+        _createLimitOrder({isBid: false, priceIndex: 8000, rawAmount: 10 ** 6});
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
     }
 
     function testGetBasisPriceIndexSkippingSameBlock() public {
         for (uint16 i = 0; i < 9; i++) {
             vm.warp(block.timestamp + 1);
-            _createLimitOrder({isBid: true, priceIndex: INITIAL_BOND_PRICE_INDEX + i, rawAmount: 10**6});
-            _createLimitOrder({isBid: false, priceIndex: INITIAL_BOND_PRICE_INDEX + i, rawAmount: 10**6});
+            _createLimitOrder({isBid: true, priceIndex: INITIAL_BOND_PRICE_INDEX + i, rawAmount: 10 ** 6});
+            _createLimitOrder({isBid: false, priceIndex: INITIAL_BOND_PRICE_INDEX + i, rawAmount: 10 ** 6});
             if (i != 0) {
                 assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX + i - 1);
             } else {
@@ -228,8 +258,8 @@ contract MangoBondPoolUnitTest is Test {
         }
 
         vm.warp(block.timestamp + 1);
-        _createLimitOrder({isBid: true, priceIndex: 8000, rawAmount: 10**6});
-        _createLimitOrder({isBid: false, priceIndex: 8000, rawAmount: 10**6});
+        _createLimitOrder({isBid: true, priceIndex: 8000, rawAmount: 10 ** 6});
+        _createLimitOrder({isBid: false, priceIndex: 8000, rawAmount: 10 ** 6});
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX + 8);
 
         vm.warp(block.timestamp + 1);
@@ -237,14 +267,14 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testExpectedBondAmount() public {
-        uint256 usdcAmount = 2 * 10**6;
+        uint256 usdcAmount = 2 * 10 ** 6;
         uint8 bonus = 5;
         uint256 expectedBondAmount = bondPool.expectedBondAmount(usdcAmount, bonus);
         assertEq(expectedBondAmount, 23782415199806078734810);
     }
 
     function testExpectedBondAmountWithInvalidBonus() public {
-        uint256 usdcAmount = 2 * 10**6;
+        uint256 usdcAmount = 2 * 10 ** 6;
 
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INVALID_BONUS));
         bondPool.expectedBondAmount(usdcAmount, 4);
@@ -276,21 +306,21 @@ contract MangoBondPoolUnitTest is Test {
     function testPurchaseBondWhenPaused() public {
         bondPool.pause();
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.PAUSED));
-        bondPool.purchaseBond(10**6, 6, Constants.USER_A_ADDRESS, type(uint16).max);
+        bondPool.purchaseBond(10 ** 6, 6, Constants.USER_A_ADDRESS, type(uint16).max);
     }
 
     function testPurchaseBondRevertToInsufficientBalance() public {
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INSUFFICIENT_BALANCE));
-        bondPool.purchaseBond(10**6, 6, Constants.USER_A_ADDRESS, type(uint16).max);
+        bondPool.purchaseBond(10 ** 6, 6, Constants.USER_A_ADDRESS, type(uint16).max);
     }
 
     function testDoublePurchaseBond() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 2 * 10**6;
+        uint256 usdcAmount = 2 * 10 ** 6;
         bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INSUFFICIENT_BALANCE));
@@ -298,62 +328,62 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testPurchaseBondRevertWithInvalidBonus() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
 
         vm.warp(block.timestamp + 3000);
 
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INVALID_BONUS));
-        bondPool.purchaseBond(10**6, 4, Constants.USER_A_ADDRESS, INITIAL_BOND_PRICE_INDEX + 4);
+        bondPool.purchaseBond(10 ** 6, 4, Constants.USER_A_ADDRESS, INITIAL_BOND_PRICE_INDEX + 4);
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INVALID_BONUS));
-        bondPool.purchaseBond(10**6, 16, Constants.USER_A_ADDRESS, INITIAL_BOND_PRICE_INDEX + 4);
+        bondPool.purchaseBond(10 ** 6, 16, Constants.USER_A_ADDRESS, INITIAL_BOND_PRICE_INDEX + 4);
     }
 
     function testPurchaseBondRevertToSlippage() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
 
         vm.warp(block.timestamp + 3000);
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
         assertEq(bondPool.availableAmount(), RELEASE_RATE_PER_SECOND * 3000);
 
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.SLIPPAGE));
-        bondPool.purchaseBond(10**6, 5, Constants.USER_A_ADDRESS, INITIAL_BOND_PRICE_INDEX + 4);
+        bondPool.purchaseBond(10 ** 6, 5, Constants.USER_A_ADDRESS, INITIAL_BOND_PRICE_INDEX + 4);
     }
 
     function testPurchaseBondRevertToTooInvalidOrderIndex() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         bondPool.changePriceSampleSize(1);
         uint16 highPriceIndex = 6000;
-        _createLimitOrder({isBid: true, priceIndex: highPriceIndex, rawAmount: 10**6});
-        _createLimitOrder({isBid: false, priceIndex: highPriceIndex, rawAmount: 10**6});
+        _createLimitOrder({isBid: true, priceIndex: highPriceIndex, rawAmount: 10 ** 6});
+        _createLimitOrder({isBid: false, priceIndex: highPriceIndex, rawAmount: 10 ** 6});
 
         vm.warp(block.timestamp + 3000);
         assertEq(bondPool.getBasisPriceIndex(), highPriceIndex);
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.AMOUNT_TOO_SMALL));
-        bondPool.purchaseBond(10**6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
+        bondPool.purchaseBond(10 ** 6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
     }
 
     function testPurchaseBondRevertToAmountTooSmall() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         bondPool.changePriceSampleSize(1);
         uint16 highPriceIndex = 5300;
-        _createLimitOrder({isBid: true, priceIndex: highPriceIndex, rawAmount: 10**6});
-        _createLimitOrder({isBid: false, priceIndex: highPriceIndex, rawAmount: 10**6});
+        _createLimitOrder({isBid: true, priceIndex: highPriceIndex, rawAmount: 10 ** 6});
+        _createLimitOrder({isBid: false, priceIndex: highPriceIndex, rawAmount: 10 ** 6});
 
         vm.warp(block.timestamp + 3000);
         assertEq(bondPool.getBasisPriceIndex(), highPriceIndex);
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.AMOUNT_TOO_SMALL));
-        bondPool.purchaseBond(10**6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
+        bondPool.purchaseBond(10 ** 6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
     }
 
     function testPurchaseBondSuccess() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
 
         vm.warp(block.timestamp + 3000);
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
         assertEq(bondPool.availableAmount(), RELEASE_RATE_PER_SECOND * 3000);
 
         uint256 beforeUSDCBalance = usdcToken.balanceOf(Constants.USER_A_ADDRESS);
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint8 bonus = 5;
         uint256 expectedSoldAmount = 11891207599903039367405;
 
@@ -401,14 +431,14 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testPurchaseByOther() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
 
         vm.warp(block.timestamp + 3000);
         assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
         assertEq(bondPool.availableAmount(), RELEASE_RATE_PER_SECOND * 3000);
 
         uint256 beforeUSDCBalance = usdcToken.balanceOf(Constants.USER_A_ADDRESS);
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint8 bonus = 5;
         uint256 expectedSoldAmount = 11891207599903039367405;
 
@@ -454,10 +484,10 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testClaimWhenPause() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
-        uint256 orderId = bondPool.purchaseBond(10**6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
+        uint256 orderId = bondPool.purchaseBond(10 ** 6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
 
         uint256[] memory orderIds = new uint256[](1);
         orderIds[0] = orderId;
@@ -468,10 +498,10 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testNothingToClaim() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
-        uint256 orderId = bondPool.purchaseBond(10**6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
+        uint256 orderId = bondPool.purchaseBond(10 ** 6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
 
         uint256[] memory orderIds = new uint256[](1);
         orderIds[0] = orderId;
@@ -482,11 +512,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testUnaccountedClaimedAmount() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -513,11 +543,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testClaimInFullyFilledOrder() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -544,11 +574,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testDoubleClaim() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -581,11 +611,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testClaimInHalfFilledOrder() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -612,11 +642,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testFullyClaimedByOther() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -653,11 +683,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testHalfClaimedByOther() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -699,7 +729,7 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function tesCancelWhenPaused() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint256 orderId = bondPool.purchaseBond(1000, 5, Constants.USER_A_ADDRESS, type(uint16).max);
@@ -713,7 +743,7 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testCancelRevertToAccess() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint256 orderId = bondPool.purchaseBond(1000, 5, Constants.USER_A_ADDRESS, type(uint16).max);
@@ -726,7 +756,7 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testCancelWhenNothingToClaim() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
@@ -755,11 +785,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testCancelWhenFullyFilled() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -786,11 +816,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testDoubleCancel() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
         OrderKey memory orderKey = OrderKey({
@@ -823,11 +853,11 @@ contract MangoBondPoolUnitTest is Test {
     }
 
     function testCancelWhenHalfClaimed() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
         vm.prank(Constants.USER_A_ADDRESS);
         uint8 bonus = 5;
-        uint256 usdcAmount = 10**6;
+        uint256 usdcAmount = 10 ** 6;
         uint256 expectedSoldAmount = 5945603799951519683702;
         uint256 orderId = bondPool.purchaseBond(usdcAmount, bonus, Constants.USER_A_ADDRESS, type(uint16).max);
 
