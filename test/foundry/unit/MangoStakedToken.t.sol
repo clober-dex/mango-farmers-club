@@ -24,6 +24,7 @@ contract MangoStakedTokenUnitTest is Test {
 
     IERC20 mangoToken;
     IERC20 usdcToken;
+    address mangoStakedTokenLogic;
     MangoStakedToken mangoStakedToken;
     ITreasury usdcTreasury;
     ITreasury mangoTreasury;
@@ -32,7 +33,7 @@ contract MangoStakedTokenUnitTest is Test {
         vm.warp(INITIAL_BLOCK_TIMESTAMP);
         mangoToken = new MockToken(INITIAL_MANGO_SUPPLY);
         usdcToken = new MockUSDC(INITIAL_USDC_SUPPLY);
-        address mangoStakedTokenLogic = address(new MangoStakedToken(address(mangoToken)));
+        mangoStakedTokenLogic = address(new MangoStakedToken(address(mangoToken)));
         mangoStakedToken = MangoStakedToken(
             address(new TransparentUpgradeableProxy(mangoStakedTokenLogic, PROXY_ADMIN, new bytes(0)))
         );
@@ -54,13 +55,39 @@ contract MangoStakedTokenUnitTest is Test {
     }
 
     function testInitialize() public {
-        MangoStakedToken newMangoStakedToken = new MangoStakedToken(address(mangoToken));
+        MangoStakedToken newMangoStakedToken = MangoStakedToken(
+            address(new TransparentUpgradeableProxy(mangoStakedTokenLogic, PROXY_ADMIN, new bytes(0)))
+        );
         address[] memory rewardTokens = new address[](1);
         rewardTokens[0] = address(usdcToken);
         address[] memory treasuries = new address[](1);
         treasuries[0] = address(usdcTreasury);
 
+        assertEq(newMangoStakedToken.owner(), address(0), "BEFORE_OWNER");
+        assertEq(newMangoStakedToken.rewardTokensLength(), 0, "BEFORE_REWARD_TOKEN_LENGTH");
+        address initializer = address(0x1111);
+        vm.prank(initializer);
         newMangoStakedToken.initialize(rewardTokens, treasuries);
+        assertEq(newMangoStakedToken.owner(), initializer, "AFTER_OWNER");
+        assertEq(newMangoStakedToken.rewardTokensLength(), 1, "AFTER_REWARD_TOKEN_LENGTH");
+        assertEq(newMangoStakedToken.rewardToken(0), address(usdcToken), "AFTER_REWARD_TOKEN");
+        IStakedToken.GlobalRewardSnapshot memory snapshot = newMangoStakedToken.globalRewardSnapshot(
+            address(usdcToken)
+        );
+        assertEq(snapshot.timestamp, block.timestamp, "AFTER_REWARD_SNAPSHOT_TIMESTAMP");
+        assertEq(snapshot.treasury, address(usdcTreasury), "AFTER_REWARD_SNAPSHOT_TREASURY");
+        assertEq(snapshot.rewardPerToken, 0, "AFTER_REWARD_SNAPSHOT_REWARD_PER_TOKEN");
+    }
+
+    function testInitializeTwice() public {
+        address[] memory rewardTokens = new address[](2);
+        rewardTokens[0] = address(usdcToken);
+        rewardTokens[1] = address(mangoToken);
+        address[] memory treasuries = new address[](2);
+        treasuries[0] = address(usdcTreasury);
+        treasuries[1] = address(mangoTreasury);
+        vm.expectRevert("Initializable: contract is already initialized");
+        mangoStakedToken.initialize(rewardTokens, treasuries);
     }
 
     function testName() public {

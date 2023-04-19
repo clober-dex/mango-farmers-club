@@ -141,6 +141,11 @@ contract MangoBondPoolUnitTest is Test {
         uninitializedBondPool.initialize(5, 15, uint64(block.timestamp), 10);
     }
 
+    function testInitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        bondPool.initialize(5, 15, uint64(block.timestamp), 10);
+    }
+
     function testSetApprovals() public {
         vm.prank(address(bondPool));
         usdcToken.decreaseAllowance(treasury, type(uint256).max / 2);
