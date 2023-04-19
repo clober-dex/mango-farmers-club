@@ -48,7 +48,7 @@ const deployFunction: DeployFunction = async function (
   })
   liveLog(`After Eth balance ${await getEthBalance(deployer)}`)
 }
-g
+
 deployFunction.tags = ['MangoHost']
 deployFunction.dependencies = ['MangoTreasury', 'MangoCloberExchanger']
 export default deployFunction
