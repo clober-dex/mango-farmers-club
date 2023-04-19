@@ -206,6 +206,10 @@ contract MangoBondPool is
         }
     }
 
+    function getBasisPrice() external view returns (uint256 price) {
+        return _market.indexToPrice(getBasisPriceIndex());
+    }
+
     function expectedBondAmount(
         uint256 spentAmount,
         uint8 bonus
