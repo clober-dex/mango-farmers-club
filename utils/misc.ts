@@ -1,4 +1,5 @@
 import { BigNumber, BigNumberish, utils } from 'ethers'
+import { BigNumber as BN } from 'bignumber.js'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { hardhat } from '@wagmi/chains'
 
@@ -14,6 +15,12 @@ export const liveLog = (str: string): void => {
   if (getHRE().network.name !== hardhat.name) {
     console.log(str)
   }
+}
+
+export const getEthBalance = async (address: string): Promise<string> => {
+  return new BN((await getHRE().ethers.provider.getBalance(address)).toString())
+    .div(new BN(10).pow(18))
+    .toString()
 }
 
 export const bn2StrWithPrecision = (

@@ -1,6 +1,12 @@
 import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
 import { BigNumber } from 'ethers'
 
+export const GAS_BUF = {
+  [hardhat.id]: 1,
+  [polygonZkEvmTestnet.id]: 1.5,
+  [polygonZkEvm.id]: 1,
+}
+
 export const PUBLIC_REGISTRATION_START_TIME = {
   [hardhat.id]: Math.floor(Date.now() / 1000) + 60 * 5,
   [polygonZkEvmTestnet.id]: Math.floor(Date.now() / 1000) + 60 * 5,

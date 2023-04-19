@@ -1,8 +1,16 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
+import { BigNumber } from 'ethers'
 
-import { liveLog, TOKEN, TREASURY_START_TIME, waitForTx } from '../utils'
+import {
+  GAS_BUF,
+  getEthBalance,
+  liveLog,
+  TOKEN,
+  TREASURY_START_TIME,
+  waitForTx,
+} from '../utils'
 
 const deployFunction: DeployFunction = async function (
   hre: HardhatRuntimeEnvironment,
@@ -19,6 +27,13 @@ const deployFunction: DeployFunction = async function (
   const { deploy } = deployments
 
   const { deployer } = await getNamedAccounts()
+  console.log('Before Eth balance', await getEthBalance(deployer))
+  const multiplier = BigNumber.from(
+    Math.floor(GAS_BUF[network.config.chainId] * 100),
+  )
+  const gasPrice = (await hre.ethers.provider.getGasPrice())
+    .mul(multiplier)
+    .div(100)
   const stakedTokenDeployResult = await deploy('MangoStakedToken', {
     from: deployer,
     args: [TOKEN[network.config.chainId].MANGO],
@@ -26,6 +41,7 @@ const deployFunction: DeployFunction = async function (
       proxyContract: 'OpenZeppelinTransparentProxy',
     },
     log: true,
+    gasPrice,
   })
 
   const treasuryDeployResult = await deploy('MangoTreasury', {
@@ -41,6 +57,7 @@ const deployFunction: DeployFunction = async function (
       },
     },
     log: true,
+    gasPrice,
   })
   const stakedToken = await ethers.getContractAt(
     'MangoStakedToken',

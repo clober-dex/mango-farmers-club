@@ -1,8 +1,9 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
+import { BigNumber } from 'ethers'
 
-import { CLOBER_MARKET, getDeployedContract, TOKEN } from '../utils'
+import { CLOBER_MARKET, GAS_BUF, getDeployedContract, TOKEN } from '../utils'
 import { MangoTreasury } from '../typechain'
 
 const deployFunction: DeployFunction = async function (
@@ -20,6 +21,12 @@ const deployFunction: DeployFunction = async function (
   const { deploy } = deployments
 
   const { deployer } = await getNamedAccounts()
+  const multiplier = BigNumber.from(
+    Math.floor(GAS_BUF[network.config.chainId] * 100),
+  )
+  const gasPrice = (await hre.ethers.provider.getGasPrice())
+    .mul(multiplier)
+    .div(100)
   const treasury = await getDeployedContract<MangoTreasury>('MangoTreasury')
   await deploy('CloberMangoUSDCExchanger', {
     from: deployer,
@@ -39,6 +46,7 @@ const deployFunction: DeployFunction = async function (
       },
     },
     log: true,
+    gasPrice,
   })
 }
 
