@@ -15,23 +15,24 @@ import "../../../contracts/MangoPublicRegistration.sol";
 import "../../../contracts/Errors.sol";
 
 contract MangoPublicRegistrationUnitTest is Test {
-    uint256 public constant INITIAL_MANGO_SUPPLY = 4_500_000_000 * 10**18;
-    uint256 public constant INITIAL_USDC_SUPPLY = 800_000 * (10**6);
-    uint256 private constant _MANGO_ALLOCATION_AMOUNT = 4_500_000_000 * 10**18; // 4.5 billion MANGO tokens
-    uint256 private constant _USDC_HARDCAP = 400_000 * 10**6; // 400,000 USDC
+    uint256 public constant INITIAL_MANGO_SUPPLY = 4_500_000_000 * 10 ** 18;
+    uint256 public constant INITIAL_USDC_SUPPLY = 800_000 * (10 ** 6);
+    uint256 private constant _MANGO_ALLOCATION_AMOUNT = 4_500_000_000 * 10 ** 18; // 4.5 billion MANGO tokens
+    uint256 private constant _USDC_HARDCAP = 400_000 * 10 ** 6; // 400,000 USDC
 
     address constant PROXY_ADMIN = address(0x1231241);
 
     IERC20 mangoToken;
     IERC20 usdcToken;
     ITokenReceiver usdcReceiver;
+    address mangoPublicRegistrationLogic;
     MangoPublicRegistration mangoPublicRegistration;
 
     function setUp() public {
         mangoToken = new MockToken(INITIAL_MANGO_SUPPLY);
         usdcToken = new MockUSDC(INITIAL_USDC_SUPPLY);
         usdcReceiver = new MockTokenReceiver(address(usdcToken));
-        address mangoPublicRegistrationLogic = address(
+        mangoPublicRegistrationLogic = address(
             new MangoPublicRegistration(50, address(mangoToken), address(usdcToken))
         );
         mangoPublicRegistration = MangoPublicRegistration(
@@ -50,6 +51,23 @@ contract MangoPublicRegistrationUnitTest is Test {
         return (x + y - 1) / y;
     }
 
+    function testInitialize() public {
+        MangoPublicRegistration newMPR = MangoPublicRegistration(
+            address(new TransparentUpgradeableProxy(mangoPublicRegistrationLogic, PROXY_ADMIN, new bytes(0)))
+        );
+
+        assertEq(newMPR.owner(), address(0), "BEFORE_OWNER");
+        address initializer = address(0x1111);
+        vm.prank(initializer);
+        newMPR.initialize();
+        assertEq(newMPR.owner(), initializer, "AFTER_OWNER");
+    }
+
+    function testInitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        mangoPublicRegistration.initialize();
+    }
+
     function testMangoSupply() public {
         assertEq(mangoToken.balanceOf(address(mangoPublicRegistration)), INITIAL_MANGO_SUPPLY);
     }
@@ -63,7 +81,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testDepositWhenPaused() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -74,7 +92,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testNormalDeposit() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -91,7 +109,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testNormalClaim() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         uint256 expectedClaimedMangoAmount = (depositAmount * _MANGO_ALLOCATION_AMOUNT) / _USDC_HARDCAP;
         vm.warp(75);
 
@@ -110,7 +128,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testTransferUsdcToMangoReceiver() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -128,7 +146,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testTransferUsdcToMangoReceiverAccess() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -145,7 +163,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testDepositMoreThanLimit() public {
-        uint256 depositAmount = 2000 * (10**6);
+        uint256 depositAmount = 2000 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -155,7 +173,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testClaimWhenPaused() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -167,7 +185,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testClaimBeforeEnd() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -187,7 +205,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testClaimTwice() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -203,7 +221,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testTransferUsdcToMangoReceiverBeforeEnd() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(75);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);
@@ -265,7 +283,7 @@ contract MangoPublicRegistrationUnitTest is Test {
     }
 
     function testClaimWhenHardcapExceeded() public {
-        uint256 depositAmount = 1000 * (10**6);
+        uint256 depositAmount = 1000 * (10 ** 6);
         vm.warp(75);
 
         for (uint16 i = 1; i <= 799; i++) {
@@ -287,11 +305,11 @@ contract MangoPublicRegistrationUnitTest is Test {
 
         assertEq(mangoToken.balanceOf(address(this)), 0);
         mangoPublicRegistration.claim(address(this));
-        assertEq(mangoToken.balanceOf(address(this)), (4_500_000_000 * 10**18) / 800);
+        assertEq(mangoToken.balanceOf(address(this)), (4_500_000_000 * 10 ** 18) / 800);
     }
 
     function testDepositBeforeStart() public {
-        uint256 depositAmount = 100 * (10**6);
+        uint256 depositAmount = 100 * (10 ** 6);
         vm.warp(25);
 
         usdcToken.approve(address(mangoPublicRegistration), depositAmount);

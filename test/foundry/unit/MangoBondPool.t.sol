@@ -141,6 +141,11 @@ contract MangoBondPoolUnitTest is Test {
         uninitializedBondPool.initialize(5, 15, uint64(block.timestamp), 10);
     }
 
+    function testInitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        bondPool.initialize(5, 15, uint64(block.timestamp), 10);
+    }
+
     function testSetApprovals() public {
         vm.prank(address(bondPool));
         usdcToken.decreaseAllowance(treasury, type(uint256).max / 2);
@@ -232,6 +237,11 @@ contract MangoBondPoolUnitTest is Test {
         vm.prank(Constants.USDC_ADDRESS);
         vm.expectRevert("Ownable: caller is not the owner");
         bondPool.changePriceSampleSize(10);
+    }
+
+    function testGetBasisPriceIndexWhenZeroSize() public {
+        bondPool.changePriceSampleSize(0);
+        assertEq(bondPool.getBasisPriceIndex(), INITIAL_BOND_PRICE_INDEX);
     }
 
     function testGetBasisPriceIndexWhenEmpty() public {

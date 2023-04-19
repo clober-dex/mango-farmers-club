@@ -68,9 +68,12 @@ contract MangoTreasuryUnitTest is Test {
         );
     }
 
-    function testSetApprovals() public {
-        MangoTreasury newMangoUsdcTreasury = new MangoTreasury(address(mangoStakedToken), address(usdcToken));
+    function testInitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        mangoUsdcTreasury.initialize(TREASURY_REWARD_STARTS_AT);
+    }
 
+    function testSetApprovals() public {
         vm.prank(address(mangoUsdcTreasury));
         usdcToken.approve(address(mangoStakedToken), type(uint256).max / 2);
 

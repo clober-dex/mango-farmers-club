@@ -64,6 +64,13 @@ contract MangoHostUnitTest is Test {
         );
     }
 
+    function testInitializeTwice() public {
+        ITokenReceiver[] memory receivers = new ITokenReceiver[](1);
+        receivers[0] = new MockTokenReceiver(address(usdcToken));
+        vm.expectRevert("Initializable: contract is already initialized");
+        mangoHost.initialize(receivers);
+    }
+
     function testSetApprovalsUnregisteredToken() public {
         IERC20 newToken = new MockUSDC(INITIAL_USDC_SUPPLY);
 
@@ -91,6 +98,14 @@ contract MangoHostUnitTest is Test {
         mangoHost.setApprovals(address(usdcToken));
 
         assertEq(usdcToken.allowance(address(mangoHost), receiver), type(uint256).max, "AFTER");
+    }
+
+    function testDistributeZeroAmount() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdcToken);
+        uint256 callCount = MockTokenReceiver(address(mangoHost.tokenReceiver(address(usdcToken)))).callCount();
+        mangoHost.distributeTokens(tokens);
+        assertEq(MockTokenReceiver(address(mangoHost.tokenReceiver(address(usdcToken)))).callCount(), callCount);
     }
 
     function testDistributeTokensTwoValidToken() public {
