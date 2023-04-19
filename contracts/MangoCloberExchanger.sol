@@ -46,8 +46,13 @@ contract MangoCloberExchanger is ICloberExchanger, Initializable, Ownable, Reent
         if (outputTokenReceiver.receivingToken() != outputToken) {
             revert Errors.MangoError(Errors.INVALID_ADDRESS);
         }
-        IERC20(outputToken).safeApprove(address(outputTokenReceiver), type(uint256).max);
         currentOrderId = _EMPTY_ORDER_ID;
+        setApprovals();
+    }
+
+    function setApprovals() public {
+        IERC20(outputToken).safeApprove(address(outputTokenReceiver), 0);
+        IERC20(outputToken).safeApprove(address(outputTokenReceiver), type(uint256).max);
     }
 
     function receivingToken() external view returns (address) {
