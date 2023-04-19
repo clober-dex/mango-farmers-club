@@ -1,8 +1,15 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
+import { BigNumber } from 'ethers'
 
-import { BOND_CONFIG, BURN_ADDRESS, TOKEN, getDeployedContract } from '../utils'
+import {
+  BOND_CONFIG,
+  BURN_ADDRESS,
+  TOKEN,
+  getDeployedContract,
+  GAS_BUF,
+} from '../utils'
 import { MangoTreasury } from '../typechain'
 
 const deployFunction: DeployFunction = async function (
@@ -20,6 +27,12 @@ const deployFunction: DeployFunction = async function (
   const { deploy } = deployments
 
   const { deployer } = await getNamedAccounts()
+  const multiplier = BigNumber.from(
+    Math.floor(GAS_BUF[network.config.chainId] * 100),
+  )
+  const gasPrice = (await hre.ethers.provider.getGasPrice())
+    .mul(multiplier)
+    .div(100)
   const treasury = await getDeployedContract<MangoTreasury>('MangoTreasury')
   const bondConfig = BOND_CONFIG[network.config.chainId]
   await deploy('MangoBondPool', {
@@ -49,6 +62,7 @@ const deployFunction: DeployFunction = async function (
       },
     },
     log: true,
+    gasPrice,
   })
 }
 

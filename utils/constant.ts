@@ -1,6 +1,12 @@
 import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
 import { BigNumber } from 'ethers'
 
+export const GAS_BUF = {
+  [hardhat.id]: 1,
+  [polygonZkEvmTestnet.id]: 1.5,
+  [polygonZkEvm.id]: 1,
+}
+
 export const PUBLIC_REGISTRATION_START_TIME = {
   [hardhat.id]: Math.floor(Date.now() / 1000) + 60 * 5,
   [polygonZkEvmTestnet.id]: Math.floor(Date.now() / 1000) + 60 * 5,
@@ -37,12 +43,8 @@ export const CLOBER_MARKET: {
 }
 
 export const TREASURY_START_TIME = {
-  [hardhat.id]:
-    PUBLIC_REGISTRATION_START_TIME[hardhat.id] + 7 * 86400 + 30 * 60,
-  [polygonZkEvmTestnet.id]:
-    PUBLIC_REGISTRATION_START_TIME[polygonZkEvmTestnet.id] +
-    7 * 86400 +
-    30 * 60,
+  [hardhat.id]: Math.floor(Date.now() / 1000),
+  [polygonZkEvmTestnet.id]: Math.floor(Date.now() / 1000),
   [polygonZkEvm.id]:
     PUBLIC_REGISTRATION_START_TIME[polygonZkEvm.id] + 7 * 86400 + 30 * 60,
 }
