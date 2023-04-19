@@ -109,6 +109,14 @@ contract MangoBondPool is
         return _bonds[orderId].owner;
     }
 
+    function ownersOf(uint256[] calldata orderIds) external view returns (address[] memory) {
+        address[] memory owners = new address[](orderIds.length);
+        for (uint256 i = 0; i < orderIds.length; i++) {
+            owners[i] = _bonds[orderIds[i]].owner;
+        }
+        return owners;
+    }
+
     function claimable(uint256 orderId) external view returns (uint256 claimableAmount) {
         OrderKey memory orderKey = _decodeOrderId(orderId);
         Bond memory bond = _bonds[orderId];
@@ -203,6 +211,10 @@ contract MangoBondPool is
         if (priceIndex == 0) {
             return initialBondPriceIndex;
         }
+    }
+
+    function getBasisPrice() external view returns (uint256 price) {
+        return _market.indexToPrice(getBasisPriceIndex());
     }
 
     function expectedBondAmount(
