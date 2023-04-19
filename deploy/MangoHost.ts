@@ -3,7 +3,7 @@ import { DeployFunction } from 'hardhat-deploy/types'
 import { hardhat, polygonZkEvm, polygonZkEvmTestnet } from '@wagmi/chains'
 import { BigNumber } from 'ethers'
 
-import { GAS_BUF, getDeployedContract, getEthBalance } from '../utils'
+import { GAS_BUF, getDeployedContract, getEthBalance, liveLog } from '../utils'
 import { MangoCloberExchanger, MangoTreasury } from '../typechain'
 
 const deployFunction: DeployFunction = async function (
@@ -46,9 +46,9 @@ const deployFunction: DeployFunction = async function (
     log: true,
     gasPrice,
   })
-  console.log('After Eth balance', await getEthBalance(deployer))
+  liveLog(`After Eth balance ${await getEthBalance(deployer)}`)
 }
-
+g
 deployFunction.tags = ['MangoHost']
 deployFunction.dependencies = ['MangoTreasury', 'MangoCloberExchanger']
 export default deployFunction

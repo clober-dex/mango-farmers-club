@@ -27,7 +27,7 @@ const deployFunction: DeployFunction = async function (
   const { deploy } = deployments
 
   const { deployer } = await getNamedAccounts()
-  console.log('Before Eth balance', await getEthBalance(deployer))
+  liveLog(`Before Eth balance ${await getEthBalance(deployer)}`)
   const multiplier = BigNumber.from(
     Math.floor(GAS_BUF[network.config.chainId] * 100),
   )
