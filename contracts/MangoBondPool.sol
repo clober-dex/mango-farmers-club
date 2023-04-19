@@ -163,7 +163,7 @@ contract MangoBondPool is
         }
     }
 
-    function bondInfo(uint256 orderId) external view returns (BondInfo memory) {
+    function bondInfo(uint256 orderId) public view returns (BondInfo memory) {
         Bond memory bond = _bonds[orderId];
         uint16 priceIndex = _decodeOrderId(orderId).priceIndex;
         return
@@ -177,6 +177,14 @@ contract MangoBondPool is
                 claimedAmount: _market.rawToQuote(bond.claimedRawAmount),
                 canceledAmount: _market.rawToBase(bond.canceledRawAmount, priceIndex, false)
             });
+    }
+
+    function bondInfos(uint256[] calldata orderIds) external view returns (BondInfo[] memory infos) {
+        infos = new BondInfo[](orderIds.length);
+        for (uint256 i = 0; i < orderIds.length; i++) {
+            infos[i] = bondInfo(orderIds[i]);
+        }
+        return infos;
     }
 
     function getBasisPriceIndex() public view returns (uint16 priceIndex) {
