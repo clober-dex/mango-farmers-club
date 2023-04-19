@@ -30,6 +30,7 @@ contract MangoHost is ICloberMarketHost, Initializable, Ownable, ReentrancyGuard
     function setApprovals(address token) public {
         address receiver = tokenReceiver[token];
         if (receiver != address(0)) {
+            IERC20(token).safeApprove(receiver, 0);
             IERC20(token).safeApprove(receiver, type(uint256).max);
         }
     }

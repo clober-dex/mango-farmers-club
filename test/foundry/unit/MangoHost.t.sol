@@ -16,11 +16,12 @@ import "../../../contracts/Errors.sol";
 contract MangoHostUnitTest is Test {
     event SetTokenReceiver(address indexed token, address indexed receiver);
 
-    uint256 public constant INITIAL_USDC_SUPPLY = 1_000_000_000 * (10**6);
+    uint256 public constant INITIAL_USDC_SUPPLY = 1_000_000_000 * (10 ** 6);
     address constant PROXY_ADMIN = address(0x1231241);
 
     IERC20 usdcToken;
     IERC20 usdc2Token;
+    address mangoHostLogic;
     MangoHost mangoHost;
 
     function setUp() public {
@@ -31,7 +32,7 @@ contract MangoHostUnitTest is Test {
         receivers[0] = new MockTokenReceiver(address(usdcToken));
         receivers[1] = new MockTokenReceiver(address(usdc2Token));
 
-        address mangoHostLogic = address(new MangoHost());
+        mangoHostLogic = address(new MangoHost());
         mangoHost = MangoHost(
             address(
                 new TransparentUpgradeableProxy(
@@ -44,31 +45,56 @@ contract MangoHostUnitTest is Test {
     }
 
     function testInitialize() public {
-        MangoHost newMangoHost = new MangoHost();
+        MangoHost newMangoHost = MangoHost(
+            address(new TransparentUpgradeableProxy(mangoHostLogic, PROXY_ADMIN, new bytes(0)))
+        );
 
         ITokenReceiver[] memory receivers = new ITokenReceiver[](1);
         receivers[0] = new MockTokenReceiver(address(usdcToken));
-
+        assertEq(newMangoHost.owner(), address(0), "BEFORE_OWNER");
+        assertEq(usdcToken.allowance(address(newMangoHost), address(receivers[0])), 0, "BEFORE_ALLOWANCE");
+        address initializer = address(0x1111);
+        vm.prank(initializer);
         newMangoHost.initialize(receivers);
+        assertEq(newMangoHost.owner(), initializer, "AFTER_OWNER");
+        assertEq(
+            usdcToken.allowance(address(newMangoHost), address(receivers[0])),
+            type(uint256).max,
+            "AFTER_ALLOWANCE"
+        );
     }
 
-    function testSetApprovals() public {
+    function testSetApprovalsUnregisteredToken() public {
         IERC20 newToken = new MockUSDC(INITIAL_USDC_SUPPLY);
 
-        assertEq(newToken.allowance(address(mangoHost), address(mangoHost.tokenReceiver(address(newToken)))), 0);
+        assertEq(
+            newToken.allowance(address(mangoHost), address(mangoHost.tokenReceiver(address(newToken)))),
+            0,
+            "BEFORE"
+        );
 
         mangoHost.setApprovals(address(newToken));
 
-        assertEq(newToken.allowance(address(mangoHost), address(mangoHost.tokenReceiver(address(newToken)))), 0);
+        assertEq(
+            newToken.allowance(address(mangoHost), address(mangoHost.tokenReceiver(address(newToken)))),
+            0,
+            "AFTER"
+        );
     }
 
-    function testSetApprovalsTwice() public {
-        vm.expectRevert("SafeERC20: approve from non-zero to non-zero allowance");
+    function testSetApprovals() public {
+        address receiver = mangoHost.tokenReceiver(address(usdcToken));
+        vm.prank(address(mangoHost));
+        usdcToken.approve(receiver, 1);
+        assertEq(usdcToken.allowance(address(mangoHost), receiver), 1, "BEFORE");
+
         mangoHost.setApprovals(address(usdcToken));
+
+        assertEq(usdcToken.allowance(address(mangoHost), receiver), type(uint256).max, "AFTER");
     }
 
     function testDistributeTokensTwoValidToken() public {
-        uint256 amount = 1000 * (10**6);
+        uint256 amount = 1000 * (10 ** 6);
         usdcToken.transfer(address(mangoHost), amount);
         usdc2Token.transfer(address(mangoHost), amount);
 
@@ -90,7 +116,7 @@ contract MangoHostUnitTest is Test {
     }
 
     function testDistributeTokensEmptyList() public {
-        uint256 amount = 1000 * (10**6);
+        uint256 amount = 1000 * (10 ** 6);
         usdcToken.transfer(address(mangoHost), amount);
 
         address[] memory tokenList = new address[](0);
@@ -105,7 +131,7 @@ contract MangoHostUnitTest is Test {
     }
 
     function testDistributeTokensWithOneZeroBalanceToken() public {
-        uint256 amount = 1000 * (10**6);
+        uint256 amount = 1000 * (10 ** 6);
         usdcToken.transfer(address(mangoHost), amount);
 
         address[] memory tokenList = new address[](2);
@@ -126,7 +152,7 @@ contract MangoHostUnitTest is Test {
     }
 
     function testDistributeTokensWithOneInvalidToken() public {
-        uint256 amount = 1000 * (10**6);
+        uint256 amount = 1000 * (10 ** 6);
         usdcToken.transfer(address(mangoHost), amount);
 
         address[] memory tokenList = new address[](2);
