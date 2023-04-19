@@ -75,6 +75,8 @@ interface IBondPool {
 
     function getBasisPriceIndex() external view returns (uint16 priceIndex);
 
+    function getBasisPrice() external view returns (uint256 price);
+
     function expectedBondAmount(uint256 spentAmount, uint8 bonus) external view returns (uint256);
 
     function purchaseBond(
