@@ -137,11 +137,11 @@ const config: HardhatConfig = {
       gasPrice: 250000000000,
       gasMultiplier: 1,
       hardfork: 'shanghai',
-      // @ts-ignore
-      // forking: {
-      //   enabled: true,
-      //   url: 'ARCHIVE_NODE_URL',
-      // },
+      forking: {
+        enabled: true,
+        url: 'https://rpc.public.zkevm-test.net',
+        blockNumber: 560792,
+      },
       mining: {
         auto: true,
         interval: 0,
