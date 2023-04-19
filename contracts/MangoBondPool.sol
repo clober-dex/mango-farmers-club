@@ -109,9 +109,13 @@ contract MangoBondPool is
         return _bonds[orderId].owner;
     }
 
-    function ownersOf(uint256[] calldata orderIds) external view returns (BondOwner[] memory owners) {
-        owners = new BondOwner[](orderIds.length);
-        for (uint256 i = 0; i < orderIds.length; ++i) {
+    function ownersOf(
+        uint256[] calldata orderIds,
+        uint256 startIndex,
+        uint256 endIndex
+    ) external view returns (BondOwner[] memory owners) {
+        owners = new BondOwner[](endIndex - startIndex + 1);
+        for (uint256 i = startIndex; i <= endIndex; ++i) {
             owners[i] = BondOwner({owner: _bonds[orderIds[i]].owner, orderId: orderIds[i]});
         }
         return owners;
