@@ -43,12 +43,8 @@ export const CLOBER_MARKET: {
 }
 
 export const TREASURY_START_TIME = {
-  [hardhat.id]:
-    PUBLIC_REGISTRATION_START_TIME[hardhat.id] + 7 * 86400 + 30 * 60,
-  [polygonZkEvmTestnet.id]:
-    PUBLIC_REGISTRATION_START_TIME[polygonZkEvmTestnet.id] +
-    7 * 86400 +
-    30 * 60,
+  [hardhat.id]: Math.floor(Date.now() / 1000),
+  [polygonZkEvmTestnet.id]: Math.floor(Date.now() / 1000),
   [polygonZkEvm.id]:
     PUBLIC_REGISTRATION_START_TIME[polygonZkEvm.id] + 7 * 86400 + 30 * 60,
 }
