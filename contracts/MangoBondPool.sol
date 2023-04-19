@@ -47,6 +47,7 @@ contract MangoBondPool is
     uint256 private _soldAmount;
 
     mapping(uint256 => Bond) private _bonds;
+    mapping(address => uint256[]) private _bondRecords;
 
     constructor(
         address treasury_,
@@ -226,6 +227,10 @@ contract MangoBondPool is
         amount = _market.rawToBase(orderRawAmount, basisPriceIndex, false);
     }
 
+    function getBondRecords(address owner) external view returns (uint256[] memory) {
+        return _bondRecords[owner];
+    }
+
     function purchaseBond(
         uint256 spentAmount,
         uint8 bonus,
@@ -264,6 +269,7 @@ contract MangoBondPool is
             bonus: bonus,
             isValid: true
         });
+        _bondRecords[to].push(orderId);
         uint256 underlyingAmount = _market.rawToBase(orderedRawAmount, priceIndex, false);
         if (underlyingAmount == 0) {
             // Check if the underlyingAmount is 0 due to the rounding calculation.
