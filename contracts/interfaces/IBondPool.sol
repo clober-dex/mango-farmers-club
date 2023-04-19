@@ -61,7 +61,7 @@ interface IBondPool {
 
     function ownerOf(uint256 orderId) external view returns (address);
 
-    function ownerOfs(uint256[] calldata orderIds) external view returns (address[] memory);
+    function ownersOf(uint256[] calldata orderIds) external view returns (address[] memory);
 
     function claimable(uint256 orderId) external view returns (uint256);
 
