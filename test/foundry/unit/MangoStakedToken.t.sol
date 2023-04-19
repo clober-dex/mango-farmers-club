@@ -273,6 +273,16 @@ contract MangoStakedTokenUnitTest is Test {
         mangoStakedToken.unplant(amount, address(this));
     }
 
+    function testHarvestableRewardsWhenTotalStakedAmountIsZero() public {
+        assertEq(mangoStakedToken.totalSupply(), 0, "BEFORE");
+        IStakedToken.HarvestableReward[] memory rewards = mangoStakedToken.harvestableRewards(address(this));
+        assertEq(rewards.length, 2, "REWARDS_LENGTH");
+        assertEq(rewards[0].token, address(usdcToken), "REWARDS_TOKEN_0");
+        assertEq(rewards[0].amount, 0, "REWARDS_AMOUNT_0");
+        assertEq(rewards[1].token, address(mangoToken), "REWARDS_TOKEN_1");
+        assertEq(rewards[1].amount, 0, "REWARDS_AMOUNT_1");
+    }
+
     function testHarvest() public {
         uint256 amount = 5 * (10 ** 18);
         uint256 stage1Timestamp = TREASURY_REWARD_STARTS_AT + 10;
