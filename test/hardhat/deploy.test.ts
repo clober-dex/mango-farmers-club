@@ -5,7 +5,14 @@ describe('Test Deploy Script', () => {
   it('should deploy properly', async () => {
     await deployments.fixture()
     const deployedFixtures = await deployments.all()
-    const expectedUpgradeableContracts: string[] = ['MangoPublicRegistration']
+    const expectedUpgradeableContracts: string[] = [
+      'MangoPublicRegistration',
+      'MangoBondPool',
+      'MangoHost',
+      'MangoStakedToken',
+      'MangoTreasury',
+      'CloberMangoUSDCExchanger',
+    ]
     const expectedNonUpgradeableContracts: string[] = []
     if (expectedUpgradeableContracts.length > 0) {
       expect(Object.keys(deployedFixtures).length).to.be.equal(

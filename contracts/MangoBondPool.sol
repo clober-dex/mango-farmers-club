@@ -65,7 +65,7 @@ contract MangoBondPool is
         if (_market.baseToken() != underlyingToken_) {
             revert Errors.MangoError(Errors.INVALID_ADDRESS);
         }
-        // change needed if market policy change to allow positive makerFee
+        // change needed if market policy change to allow non-zero makerFee
         if (_market.makerFee() != 0) {
             revert Errors.MangoError(Errors.INVALID_FEE);
         }
@@ -108,6 +108,14 @@ contract MangoBondPool is
 
     function ownerOf(uint256 orderId) external view returns (address) {
         return _bonds[orderId].owner;
+    }
+
+    function ownersOf(uint256[] calldata orderIds) external view returns (BondOwner[] memory owners) {
+        owners = new BondOwner[](orderIds.length);
+        for (uint256 i = 0; i < orderIds.length; ++i) {
+            owners[i] = BondOwner({owner: _bonds[orderIds[i]].owner, orderId: orderIds[i]});
+        }
+        return owners;
     }
 
     function claimable(uint256 orderId) external view returns (uint256 claimableAmount) {
@@ -156,7 +164,7 @@ contract MangoBondPool is
         }
     }
 
-    function bondInfo(uint256 orderId) external view returns (BondInfo memory) {
+    function bondInfo(uint256 orderId) public view returns (BondInfo memory) {
         Bond memory bond = _bonds[orderId];
         uint16 priceIndex = _decodeOrderId(orderId).priceIndex;
         return
@@ -170,6 +178,14 @@ contract MangoBondPool is
                 claimedAmount: _market.rawToQuote(bond.claimedRawAmount),
                 canceledAmount: _market.rawToBase(bond.canceledRawAmount, priceIndex, false)
             });
+    }
+
+    function bondInfos(uint256[] calldata orderIds) external view returns (BondInfo[] memory infos) {
+        infos = new BondInfo[](orderIds.length);
+        for (uint256 i = 0; i < orderIds.length; ++i) {
+            infos[i] = bondInfo(orderIds[i]);
+        }
+        return infos;
     }
 
     function getBasisPriceIndex() public view returns (uint16 priceIndex) {
@@ -204,6 +220,10 @@ contract MangoBondPool is
         if (priceIndex == 0) {
             return initialBondPriceIndex;
         }
+    }
+
+    function getBasisPrice() external view returns (uint256 price) {
+        return _market.indexToPrice(getBasisPriceIndex());
     }
 
     function expectedBondAmount(

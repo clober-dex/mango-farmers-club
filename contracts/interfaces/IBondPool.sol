@@ -33,6 +33,11 @@ interface IBondPool {
         uint256 canceledAmount; // fee excluded
     }
 
+    struct BondOwner {
+        address owner;
+        uint256 orderId;
+    }
+
     function burnAddress() external view returns (address);
 
     function underlyingToken() external view returns (address);
@@ -61,6 +66,8 @@ interface IBondPool {
 
     function ownerOf(uint256 orderId) external view returns (address);
 
+    function ownersOf(uint256[] calldata orderIds) external view returns (BondOwner[] memory);
+
     function claimable(uint256 orderId) external view returns (uint256);
 
     function unaccountedClaimedAmount(uint256 orderId) external view returns (uint256);
@@ -71,7 +78,11 @@ interface IBondPool {
 
     function bondInfo(uint256 orderId) external view returns (BondInfo memory);
 
+    function bondInfos(uint256[] calldata orderIds) external view returns (BondInfo[] memory);
+
     function getBasisPriceIndex() external view returns (uint16 priceIndex);
+
+    function getBasisPrice() external view returns (uint256 price);
 
     function expectedBondAmount(uint256 spentAmount, uint8 bonus) external view returns (uint256);
 
