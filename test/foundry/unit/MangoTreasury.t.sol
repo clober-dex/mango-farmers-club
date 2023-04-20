@@ -25,13 +25,14 @@ contract MangoTreasuryUnitTest is Test {
 
     IStakedToken mangoStakedToken;
     IERC20 usdcToken;
+    address mangoUsdcTreasuryLogic;
     MangoTreasury mangoUsdcTreasury;
 
     function setUp() public {
         vm.warp(INITIAL_BLOCK_TIMESTAMP);
         mangoStakedToken = IStakedToken(address(new MockStakedToken()));
         usdcToken = new MockUSDC(INITIAL_USDC_SUPPLY);
-        address mangoUsdcTreasuryLogic = address(new MangoTreasury(address(mangoStakedToken), address(usdcToken)));
+        mangoUsdcTreasuryLogic = address(new MangoTreasury(address(mangoStakedToken), address(usdcToken)));
         mangoUsdcTreasury = MangoTreasury(
             address(
                 new TransparentUpgradeableProxy(
@@ -48,15 +49,45 @@ contract MangoTreasuryUnitTest is Test {
     }
 
     function testInitialize() public {
-        MangoTreasury newMangoUsdcTreasury = new MangoTreasury(address(mangoStakedToken), address(usdcToken));
+        MangoTreasury newMangoUsdcTreasury = MangoTreasury(
+            address(new TransparentUpgradeableProxy(mangoUsdcTreasuryLogic, PROXY_ADMIN, new bytes(0)))
+        );
 
+        assertEq(newMangoUsdcTreasury.lastDistributedAt(), 0, "BEFORE_LAST_RELEASED_AT");
+        assertEq(newMangoUsdcTreasury.owner(), address(0), "BEFORE_OWNER");
+        assertEq(usdcToken.allowance(address(newMangoUsdcTreasury), address(mangoStakedToken)), 0, "BEFORE_ALLOWANCE");
+        address initializer = address(0x1111);
+        vm.prank(initializer);
         newMangoUsdcTreasury.initialize(TREASURY_REWARD_STARTS_AT);
+        assertEq(newMangoUsdcTreasury.lastDistributedAt(), TREASURY_REWARD_STARTS_AT, "AFTER_LAST_RELEASED_AT");
+        assertEq(newMangoUsdcTreasury.owner(), initializer, "AFTER_OWNER");
+        assertEq(
+            usdcToken.allowance(address(newMangoUsdcTreasury), address(mangoStakedToken)),
+            type(uint256).max,
+            "AFTER_ALLOWANCE"
+        );
+    }
+
+    function testInitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
+        mangoUsdcTreasury.initialize(TREASURY_REWARD_STARTS_AT);
     }
 
     function testSetApprovals() public {
-        MangoTreasury newMangoUsdcTreasury = new MangoTreasury(address(mangoStakedToken), address(usdcToken));
+        vm.prank(address(mangoUsdcTreasury));
+        usdcToken.approve(address(mangoStakedToken), type(uint256).max / 2);
 
-        newMangoUsdcTreasury.setApprovals();
+        assertEq(
+            usdcToken.allowance(address(mangoUsdcTreasury), address(mangoStakedToken)),
+            type(uint256).max / 2,
+            "BEFORE"
+        );
+        mangoUsdcTreasury.setApprovals();
+        assertEq(
+            usdcToken.allowance(address(mangoUsdcTreasury), address(mangoStakedToken)),
+            type(uint256).max,
+            "AFTER"
+        );
     }
 
     function testRewardRate() public {

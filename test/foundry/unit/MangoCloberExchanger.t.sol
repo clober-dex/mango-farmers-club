@@ -24,6 +24,7 @@ contract MangoCloberExchangerUnitTest is Test {
     CloberRouter router;
     CloberOrderBook market;
     ITokenReceiver receiver;
+    address exchangerLogic;
     MangoCloberExchanger exchanger;
 
     function setUp() public {
@@ -33,9 +34,7 @@ contract MangoCloberExchangerUnitTest is Test {
         outputToken = IERC20Metadata(market.quoteToken());
         inputToken = IERC20Metadata(market.baseToken());
         receiver = new MockTokenReceiver(address(outputToken));
-        address exchangerLogic = address(
-            new MangoCloberExchanger(address(inputToken), address(outputToken), address(market))
-        );
+        exchangerLogic = address(new MangoCloberExchanger(address(inputToken), address(outputToken), address(market)));
         exchanger = MangoCloberExchanger(
             address(
                 new TransparentUpgradeableProxy(
@@ -47,16 +46,46 @@ contract MangoCloberExchangerUnitTest is Test {
         );
     }
 
+    function testInitialize() public {
+        MangoCloberExchanger newExchanger = MangoCloberExchanger(
+            address(new TransparentUpgradeableProxy(exchangerLogic, PROXY_ADMIN, new bytes(0)))
+        );
+
+        assertEq(address(newExchanger.outputTokenReceiver()), address(0), "BEFORE_RECEIVER");
+        assertEq(newExchanger.currentOrderId(), 0, "BEFORE_CURRENT_ORDER_ID");
+        assertEq(newExchanger.owner(), address(0), "BEFORE_OWNER");
+        assertEq(outputToken.allowance(address(newExchanger), address(receiver)), 0, "BEFORE_ALLOWANCE");
+        address initializer = address(0x1111);
+        vm.prank(initializer);
+        newExchanger.initialize(address(receiver));
+        assertEq(address(newExchanger.outputTokenReceiver()), address(receiver), "AFTER_RECEIVER");
+        assertEq(newExchanger.currentOrderId(), type(uint256).max, "AFTER_CURRENT_ORDER_ID");
+        assertEq(newExchanger.owner(), initializer, "AFTER_OWNER");
+        assertEq(outputToken.allowance(address(newExchanger), address(receiver)), type(uint256).max, "AFTER_ALLOWANCE");
+    }
+
     function testInitializeWithWrongReceiver() public {
-        exchanger = new MangoCloberExchanger(address(inputToken), address(outputToken), address(market));
+        MangoCloberExchanger newExchanger = MangoCloberExchanger(
+            address(new TransparentUpgradeableProxy(exchangerLogic, PROXY_ADMIN, new bytes(0)))
+        );
         receiver = new MockTokenReceiver(address(inputToken));
         vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.INVALID_ADDRESS));
+        newExchanger.initialize(address(receiver));
+    }
+
+    function testInitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
         exchanger.initialize(address(receiver));
     }
 
-    function testInitializeOnlyCalledOnce() public {
-        vm.expectRevert("Initializable: contract is already initialized");
-        exchanger.initialize(address(receiver));
+    function testSetApprovals() public {
+        vm.prank(address(exchanger));
+        outputToken.approve(address(receiver), 1);
+        assertEq(outputToken.allowance(address(exchanger), address(receiver)), 1, "BEFORE");
+
+        exchanger.setApprovals();
+
+        assertEq(outputToken.allowance(address(exchanger), address(receiver)), type(uint256).max, "AFTER");
     }
 
     function testReceivingToken() public {
@@ -89,12 +118,12 @@ contract MangoCloberExchangerUnitTest is Test {
 
     function testLimitOrderBid() public {
         _resetBidExchanger();
-        outputToken.transfer(address(exchanger), 10**6);
+        outputToken.transfer(address(exchanger), 10 ** 6);
         assertEq(exchanger.currentOrderId(), type(uint256).max, "BEFORE_ORDER_ID");
 
         vm.expectCall(
             address(market),
-            abi.encodeCall(CloberOrderBook.limitOrder, (address(exchanger), PRICE_INDEX, 10**6, 0, 1, new bytes(0)))
+            abi.encodeCall(CloberOrderBook.limitOrder, (address(exchanger), PRICE_INDEX, 10 ** 6, 0, 1, new bytes(0)))
         );
         exchanger.limitOrder(PRICE_INDEX);
 
@@ -105,20 +134,24 @@ contract MangoCloberExchangerUnitTest is Test {
     }
 
     function testLimitOrderAsk() public {
-        inputToken.transfer(address(exchanger), 10**18);
+        inputToken.transfer(address(exchanger), 10 ** 18);
         assertEq(exchanger.currentOrderId(), type(uint256).max, "BEFORE_ORDER_ID");
 
-        uint256 expectedOrderAmount = market.rawToBase(market.baseToRaw(10**18, PRICE_INDEX, false), PRICE_INDEX, true);
+        uint256 expectedOrderAmount = market.rawToBase(
+            market.baseToRaw(10 ** 18, PRICE_INDEX, false),
+            PRICE_INDEX,
+            true
+        );
         vm.expectCall(
             address(market),
-            abi.encodeCall(CloberOrderBook.limitOrder, (address(exchanger), PRICE_INDEX, 0, 10**18, 0, new bytes(0)))
+            abi.encodeCall(CloberOrderBook.limitOrder, (address(exchanger), PRICE_INDEX, 0, 10 ** 18, 0, new bytes(0)))
         );
         exchanger.limitOrder(PRICE_INDEX);
 
         uint256 orderId = exchanger.currentOrderId();
         assertLt(orderId, type(uint256).max, "ORDER_ID");
         assertEq(CloberOrderNFT(market.orderToken()).ownerOf(orderId), address(exchanger), "ORDER_NFT");
-        assertEq(inputToken.balanceOf(address(exchanger)), 10**18 - expectedOrderAmount, "EXCHANGER_BALANCE");
+        assertEq(inputToken.balanceOf(address(exchanger)), 10 ** 18 - expectedOrderAmount, "EXCHANGER_BALANCE");
     }
 
     function testLimitOrderAccess() public {
@@ -128,12 +161,12 @@ contract MangoCloberExchangerUnitTest is Test {
     }
 
     function testLimitOrderShouldCancelPreviousOrder() public {
-        inputToken.transfer(address(exchanger), 10**18);
+        inputToken.transfer(address(exchanger), 10 ** 18);
         exchanger.limitOrder(PRICE_INDEX);
         uint256 orderId = exchanger.currentOrderId();
         assertLt(orderId, type(uint256).max, "BEFORE_ORDER_ID");
 
-        inputToken.transfer(address(exchanger), 10**18);
+        inputToken.transfer(address(exchanger), 10 ** 18);
         exchanger.limitOrder(PRICE_INDEX);
         uint256 newOrderId = exchanger.currentOrderId();
         assertFalse(orderId == newOrderId, "ORDER_ID");
@@ -142,9 +175,9 @@ contract MangoCloberExchangerUnitTest is Test {
     }
 
     function testLimitOrderWithoutMakingOrder() public {
-        router.limitBid(CloberOrderParamBuilder.buildBid(PRICE_INDEX, 100 * 10**(outputToken.decimals())));
+        router.limitBid(CloberOrderParamBuilder.buildBid(PRICE_INDEX, 100 * 10 ** (outputToken.decimals())));
 
-        inputToken.transfer(address(exchanger), 10**18);
+        inputToken.transfer(address(exchanger), 10 ** 18);
         assertEq(exchanger.currentOrderId(), type(uint256).max, "BEFORE_ORDER_ID");
 
         exchanger.limitOrder(PRICE_INDEX);
@@ -186,17 +219,17 @@ contract MangoCloberExchangerUnitTest is Test {
     }
 
     function testTransferOutputTokenShouldClaimFirst() public {
-        inputToken.transfer(address(exchanger), 10**18);
+        inputToken.transfer(address(exchanger), 10 ** 18);
         exchanger.limitOrder(PRICE_INDEX);
         uint256 orderId = exchanger.currentOrderId();
-        router.limitBid(CloberOrderParamBuilder.buildBid(PRICE_INDEX, 100 * 10**(outputToken.decimals())));
+        router.limitBid(CloberOrderParamBuilder.buildBid(PRICE_INDEX, 100 * 10 ** (outputToken.decimals())));
         (, uint256 claimable, , ) = market.getClaimable(CloberOrderNFT(market.orderToken()).decodeId(orderId));
         assertGt(claimable, 0, "CLAIMABLE");
 
-        outputToken.transfer(address(exchanger), 10**(outputToken.decimals()));
+        outputToken.transfer(address(exchanger), 10 ** (outputToken.decimals()));
         vm.expectCall(
             address(receiver),
-            abi.encodeCall(ITokenReceiver.receiveToken, (claimable + 10**(outputToken.decimals())))
+            abi.encodeCall(ITokenReceiver.receiveToken, (claimable + 10 ** (outputToken.decimals())))
         );
         exchanger.transferOutputToken();
 

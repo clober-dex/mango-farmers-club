@@ -94,6 +94,7 @@ contract MangoBondPool is
     }
 
     function setApprovals() public {
+        IERC20(quoteToken).safeApprove(address(_treasury), 0);
         IERC20(quoteToken).safeApprove(address(_treasury), type(uint256).max);
     }
 
