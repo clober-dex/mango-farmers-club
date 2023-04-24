@@ -19,7 +19,7 @@ contract MangoHost is ICloberMarketHost, Initializable, Ownable, ReentrancyGuard
     mapping(address => address) public override tokenReceiver;
 
     constructor(address marketFactory_) {
-        _marketFactory = marketFactory_;
+        _marketFactory = CloberMarketFactory(marketFactory_);
     }
 
     function initialize(ITokenReceiver[] calldata receivers_) external initializer {
