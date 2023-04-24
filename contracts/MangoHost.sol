@@ -14,9 +14,13 @@ import "./utils/ReentrancyGuard.sol";
 contract MangoHost is ICloberMarketHost, Initializable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    CloberMarketFactory private _marketFactory;
+    CloberMarketFactory private immutable _marketFactory;
     // token => receiver
     mapping(address => address) public override tokenReceiver;
+
+    constructor(address marketFactory_) {
+        _marketFactory = marketFactory_;
+    }
 
     function initialize(ITokenReceiver[] calldata receivers_) external initializer {
         _initReentrancyGuard();
