@@ -69,7 +69,7 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
     maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
     releaseRate: BigNumber.from(5)
       .mul(BigNumber.from(10).pow(27))
-      .div(3600 * 24 * 500), // 5 * 10**28 / (60 * 60 * 24 * 500)
+      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,
@@ -82,7 +82,7 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
     maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
     releaseRate: BigNumber.from(5)
       .mul(BigNumber.from(10).pow(27))
-      .div(3600 * 24 * 500), // 5 * 10**28 / (60 * 60 * 24 * 500)
+      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,
@@ -95,7 +95,7 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
     maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
     releaseRate: BigNumber.from(5)
       .mul(BigNumber.from(10).pow(27))
-      .div(3600 * 24 * 500), // 5 * 10**28 / (60 * 60 * 24 * 500)
+      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,
