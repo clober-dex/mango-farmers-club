@@ -38,7 +38,7 @@ export const CLOBER_MARKET: {
     'MANGO/USDC': '0x8E02612391843175B13883a284FD65A6C66FDD79',
   },
   [polygonZkEvm.id]: {
-    'MANGO/USDC': '', // TBD
+    'MANGO/USDC': '0x1FC38BA10E741F357b1c8B69DC08eA654c21Ae37',
   },
 }
 
@@ -46,7 +46,7 @@ export const TREASURY_START_TIME = {
   [hardhat.id]: Math.floor(Date.now() / 1000),
   [polygonZkEvmTestnet.id]: Math.floor(Date.now() / 1000),
   [polygonZkEvm.id]:
-    PUBLIC_REGISTRATION_START_TIME[polygonZkEvm.id] + 7 * 86400 + 30 * 60,
+    PUBLIC_REGISTRATION_START_TIME[polygonZkEvm.id] + 7 * 86400 + 10 * 60,
 }
 
 export const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD'
@@ -66,8 +66,10 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
   [hardhat.id]: {
     cancelFee: 200000,
     market: CLOBER_MARKET[hardhat.id]['MANGO/USDC'],
-    releaseRate: BigNumber.from('11574074074074073088'), // 5 * 10**28 / (60 * 60 * 24 * 500)
-    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(28)),
+    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
+    releaseRate: BigNumber.from(5)
+      .mul(BigNumber.from(10).pow(27))
+      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,
@@ -77,8 +79,10 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
   [polygonZkEvmTestnet.id]: {
     cancelFee: 200000,
     market: CLOBER_MARKET[polygonZkEvmTestnet.id]['MANGO/USDC'],
-    releaseRate: BigNumber.from('11574074074074073088'), // 5 * 10**28 / (60 * 60 * 24 * 500)
-    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(28)),
+    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
+    releaseRate: BigNumber.from(5)
+      .mul(BigNumber.from(10).pow(27))
+      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,
@@ -88,8 +92,10 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
   [polygonZkEvm.id]: {
     cancelFee: 200000,
     market: CLOBER_MARKET[polygonZkEvm.id]['MANGO/USDC'],
-    releaseRate: BigNumber.from('11574074074074073088'), // 5 * 10**28 / (60 * 60 * 24 * 500)
-    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(28)),
+    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
+    releaseRate: BigNumber.from(5)
+      .mul(BigNumber.from(10).pow(27))
+      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,
