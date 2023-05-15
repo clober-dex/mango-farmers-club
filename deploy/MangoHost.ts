@@ -33,7 +33,7 @@ const deployFunction: DeployFunction = async function (
   )
   await deploy('MangoHost', {
     from: deployer,
-    args: [],
+    args: ['0x24aC0938C010Fb520F1068e96d78E0458855111D'],
     proxy: {
       proxyContract: 'OpenZeppelinTransparentProxy',
       execute: {

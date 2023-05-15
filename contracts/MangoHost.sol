@@ -7,14 +7,20 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./clober/CloberMarketFactory.sol";
 import "./interfaces/ICloberMarketHost.sol";
 import "./utils/ReentrancyGuard.sol";
 
 contract MangoHost is ICloberMarketHost, Initializable, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    CloberMarketFactory private immutable _marketFactory;
     // token => receiver
     mapping(address => address) public override tokenReceiver;
+
+    constructor(address marketFactory_) {
+        _marketFactory = CloberMarketFactory(marketFactory_);
+    }
 
     function initialize(ITokenReceiver[] calldata receivers_) external initializer {
         _initReentrancyGuard();
@@ -67,5 +73,9 @@ contract MangoHost is ICloberMarketHost, Initializable, Ownable, ReentrancyGuard
         }
 
         IERC20(token).safeTransfer(to, IERC20(token).balanceOf(address(this)));
+    }
+
+    function receiveHost(address market) external onlyOwner {
+        _marketFactory.executeHandOverHost(market);
     }
 }

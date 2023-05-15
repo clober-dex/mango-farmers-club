@@ -32,7 +32,7 @@ contract MangoHostUnitTest is Test {
         receivers[0] = new MockTokenReceiver(address(usdcToken));
         receivers[1] = new MockTokenReceiver(address(usdc2Token));
 
-        mangoHostLogic = address(new MangoHost());
+        mangoHostLogic = address(new MangoHost(0x24aC0938C010Fb520F1068e96d78E0458855111D));
         mangoHost = MangoHost(
             address(
                 new TransparentUpgradeableProxy(

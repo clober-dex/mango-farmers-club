@@ -14,4 +14,6 @@ interface ICloberMarketHost {
     function setTokenReceiver(ITokenReceiver receiver) external;
 
     function withdrawLostERC20(address token, address to) external;
+
+    function receiveHost(address market) external;
 }
