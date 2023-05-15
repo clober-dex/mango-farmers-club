@@ -64,6 +64,10 @@ interface IBondPool {
 
     function sampleSize() external view returns (uint16);
 
+    function lastRecordedReleasedAmount() external view returns (uint256);
+
+    function soldAmount() external view returns (uint256);
+
     function ownerOf(uint256 orderId) external view returns (address);
 
     function ownersOf(uint256[] calldata orderIds) external view returns (BondOwner[] memory);
@@ -102,4 +106,6 @@ interface IBondPool {
     function changeAvailableBonusRange(uint8 min, uint8 max) external;
 
     function changePriceSampleSize(uint16 sampleSize) external;
+
+    function withdrawExceededUnderlyingToken(address receiver) external;
 }

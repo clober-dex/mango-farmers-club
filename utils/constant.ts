@@ -92,10 +92,10 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
   [polygonZkEvm.id]: {
     cancelFee: 200000,
     market: CLOBER_MARKET[polygonZkEvm.id]['MANGO/USDC'],
-    maxReleaseAmount: BigNumber.from(5).mul(BigNumber.from(10).pow(27)),
-    releaseRate: BigNumber.from(5)
+    maxReleaseAmount: BigNumber.from(4).mul(BigNumber.from(10).pow(27)),
+    releaseRate: BigNumber.from(4)
       .mul(BigNumber.from(10).pow(27))
-      .div(3600 * 24 * 500), // 5 * 10**27 / (60 * 60 * 24 * 500)
+      .div(3600 * 24 * 500), // 4 * 10**27 / (60 * 60 * 24 * 500)
     initialBondPrice: 220,
     minBonus: 5,
     maxBonus: 15,

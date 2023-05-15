@@ -43,8 +43,8 @@ contract MangoBondPool is
     uint8 public override maxBonus;
     uint64 public override lastReleasedAt;
     uint16 public override sampleSize;
-    uint256 private _lastRecordedReleasedAmount;
-    uint256 private _soldAmount;
+    uint256 public override lastRecordedReleasedAmount;
+    uint256 public override soldAmount;
 
     mapping(uint256 => Bond) private _bonds;
 
@@ -147,19 +147,19 @@ contract MangoBondPool is
     function releasedAmount() public view returns (uint256 newReleasedAmount) {
         // @dev Assume that `lastReleasedAt` is not 0. We initialize this value in `initialize()`.
         uint256 timeDiff = block.timestamp - lastReleasedAt;
-        newReleasedAmount = _lastRecordedReleasedAmount + releaseRate * timeDiff;
+        newReleasedAmount = lastRecordedReleasedAmount + releaseRate * timeDiff;
         if (newReleasedAmount > maxReleaseAmount) {
             newReleasedAmount = maxReleaseAmount;
         }
     }
 
     function availableAmount() public view returns (uint256) {
-        return releasedAmount() - _soldAmount;
+        return releasedAmount() - soldAmount;
     }
 
     function _release() internal {
         if (block.timestamp > lastReleasedAt) {
-            _lastRecordedReleasedAmount = releasedAmount();
+            lastRecordedReleasedAmount = releasedAmount();
             lastReleasedAt = uint64(block.timestamp);
         }
     }
@@ -308,7 +308,7 @@ contract MangoBondPool is
             revert Errors.MangoError(Errors.INVALID_ADDRESS);
         }
         IERC20(inputToken).safeTransfer(msg.sender, inputAmount);
-        _soldAmount += inputAmount;
+        soldAmount += inputAmount;
     }
 
     function claim(uint256[] calldata orderIds) public nonReentrant whenNotPaused {
@@ -403,5 +403,10 @@ contract MangoBondPool is
     function _toSingletonArray(OrderKey memory orderKey) internal pure returns (OrderKey[] memory arr) {
         arr = new OrderKey[](1);
         arr[0] = orderKey;
+    }
+
+    function withdrawExceededUnderlyingToken(address receiver) external onlyOwner {
+        uint256 exceededAmount = IERC20(underlyingToken).balanceOf(address(this)) + soldAmount - maxReleaseAmount;
+        IERC20(underlyingToken).safeTransfer(receiver, exceededAmount);
     }
 }

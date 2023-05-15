@@ -908,4 +908,23 @@ contract MangoBondPoolUnitTest is Test {
         );
         assertEq(usdcToken.balanceOf(Constants.USER_A_ADDRESS), usdcBalanceBefore, "ERROR_USDC_BALANCE");
     }
+
+    function testWithdrawExceededUnderlyingTokenAccess() public {
+        mangoToken.transfer(address(bondPool), MAX_RELEASE_AMOUNT);
+        vm.prank(address(0x123));
+        vm.expectRevert("Ownable: caller is not the owner");
+        bondPool.withdrawExceededUnderlyingToken(address(0x123));
+    }
+
+    function testWithdrawExceededUnderlyingToken() public {
+        mangoToken.transfer(address(bondPool), MAX_RELEASE_AMOUNT);
+        address receiver = address(0x123);
+        uint256 exceeded = 10 ** 18;
+        mangoToken.transfer(address(bondPool), exceeded);
+        uint256 beforeBondBalance = mangoToken.balanceOf(address(bondPool));
+        uint256 beforeReceiverBalance = mangoToken.balanceOf(receiver);
+        bondPool.withdrawExceededUnderlyingToken(receiver);
+        assertEq(beforeBondBalance - mangoToken.balanceOf(address(bondPool)), exceeded, "BOND");
+        assertEq(mangoToken.balanceOf(receiver) - beforeReceiverBalance, exceeded, "RECEIVER");
+    }
 }
