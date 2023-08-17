@@ -311,7 +311,7 @@ contract MangoBondPool is
         soldAmount += inputAmount;
     }
 
-    function claim(uint256[] calldata orderIds) public nonReentrant whenNotPaused {
+    function claim(uint256[] calldata orderIds) public nonReentrant {
         for (uint256 i = 0; i < orderIds.length; ++i) {
             uint256 claimedAmount;
             uint256 orderId = orderIds[i];
@@ -337,7 +337,7 @@ contract MangoBondPool is
         }
     }
 
-    function breakBonds(uint256[] calldata orderIds) external nonReentrant whenNotPaused {
+    function breakBonds(uint256[] calldata orderIds) external nonReentrant {
         OrderKey[] memory orderKeys = new OrderKey[](orderIds.length);
         for (uint256 i = 0; i < orderIds.length; ++i) {
             uint256 orderId = orderIds[i];
