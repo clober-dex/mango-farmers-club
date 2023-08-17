@@ -406,7 +406,13 @@ contract MangoBondPool is
     }
 
     function withdrawExceededUnderlyingToken(address receiver) external onlyOwner {
-        uint256 exceededAmount = IERC20(underlyingToken).balanceOf(address(this)) + soldAmount - maxReleaseAmount;
-        IERC20(underlyingToken).safeTransfer(receiver, exceededAmount);
+        uint256 thisBalance = IERC20(underlyingToken).balanceOf(address(this));
+        if (thisBalance + soldAmount > maxReleaseAmount) {
+            IERC20(underlyingToken).safeTransfer(receiver, thisBalance + soldAmount - maxReleaseAmount);
+        }
+    }
+
+    function withdrawAsDebt(address receiver, uint256 amount) external onlyOwner {
+        IERC20(underlyingToken).safeTransfer(receiver, amount);
     }
 }
