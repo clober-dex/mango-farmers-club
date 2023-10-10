@@ -16,6 +16,7 @@ import "./Errors.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./clober/CloberMarketSwapCallbackReceiver.sol";
 import "./utils/Pausable.sol";
+import "./MangoTreasury.sol";
 
 contract MangoBondPool is
     IBondPool,
@@ -313,27 +314,30 @@ contract MangoBondPool is
 
     function claim(uint256[] calldata orderIds) public nonReentrant {
         for (uint256 i = 0; i < orderIds.length; ++i) {
-            uint256 claimedAmount;
-            uint256 orderId = orderIds[i];
-            Bond memory bond = _bonds[orderId];
-            if (!bond.isValid) {
-                continue;
-            }
-            OrderKey memory orderKey = _decodeOrderId(orderId);
-            claimedAmount += _unaccountedClaimedAmount(bond, orderKey);
-            uint256 beforeQuoteAmount = IERC20(quoteToken).balanceOf(address(this));
-            _market.claim(msg.sender, _toSingletonArray(orderKey));
-            claimedAmount += IERC20(quoteToken).balanceOf(address(this)) - beforeQuoteAmount;
-            if (claimedAmount > 0) {
-                IERC20(quoteToken).safeTransfer(bond.owner, claimedAmount);
+            _claim(orderIds[i]);
+        }
+    }
 
-                uint64 remoteOrderRawAmount = _market.getOrder(orderKey).amount;
-                bond.claimedRawAmount = bond.purchasedRawAmount - remoteOrderRawAmount;
-                if (bond.purchasedRawAmount == bond.claimedRawAmount) {
-                    bond.isValid = false;
-                }
-                _bonds[orderId] = bond;
+    function _claim(uint256 orderId) internal {
+        uint256 claimedAmount;
+        Bond memory bond = _bonds[orderId];
+        if (!bond.isValid) {
+            return;
+        }
+        OrderKey memory orderKey = _decodeOrderId(orderId);
+        claimedAmount += _unaccountedClaimedAmount(bond, orderKey);
+        uint256 beforeQuoteAmount = IERC20(quoteToken).balanceOf(address(this));
+        _market.claim(msg.sender, _toSingletonArray(orderKey));
+        claimedAmount += IERC20(quoteToken).balanceOf(address(this)) - beforeQuoteAmount;
+        if (claimedAmount > 0) {
+            IERC20(quoteToken).safeTransfer(bond.owner, claimedAmount);
+
+            uint64 remoteOrderRawAmount = _market.getOrder(orderKey).amount;
+            bond.claimedRawAmount = bond.purchasedRawAmount - remoteOrderRawAmount;
+            if (bond.purchasedRawAmount == bond.claimedRawAmount) {
+                bond.isValid = false;
             }
+            _bonds[orderId] = bond;
         }
     }
 
@@ -367,6 +371,25 @@ contract MangoBondPool is
         IERC20(underlyingToken).safeTransfer(burnAddress, cancelFeeAmount);
         IERC20(underlyingToken).safeTransfer(msg.sender, canceledUnderlyingAmount - cancelFeeAmount);
         IERC20(quoteToken).safeTransfer(msg.sender, claimedQuoteAmount);
+    }
+
+    function refund(uint256[] calldata orderIds) external nonReentrant whenPaused onlyOwner {
+        for (uint256 i = 0; i < orderIds.length; ++i) {
+            uint256 orderId = orderIds[i];
+            _claim(orderId);
+            Bond memory bond = _bonds[orderId];
+            if (!bond.isValid) {
+                continue;
+            }
+            uint256 refundAmount = (_market.rawToQuote(bond.spentRawAmount) *
+                (bond.purchasedRawAmount - bond.claimedRawAmount)) / bond.purchasedRawAmount;
+            OrderKey memory orderKey = _decodeOrderId(orderId);
+            _market.cancel(address(this), _toSingletonArray(orderKey));
+            bond.canceledRawAmount = bond.purchasedRawAmount - bond.claimedRawAmount;
+            bond.isValid = false;
+            _bonds[orderId] = bond;
+            MangoTreasury(address(_treasury)).withdrawRewardByBondPool(refundAmount, bond.owner);
+        }
     }
 
     function withdrawLostERC20(address token, address to) external onlyOwner {

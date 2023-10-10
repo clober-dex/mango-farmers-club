@@ -5,6 +5,7 @@ import { BigNumber } from 'ethers'
 
 import {
   GAS_BUF,
+  getDeployedContract,
   getEthBalance,
   liveLog,
   TOKEN,
@@ -46,7 +47,12 @@ const deployFunction: DeployFunction = async function (
 
   const treasuryDeployResult = await deploy('MangoTreasury', {
     from: deployer,
-    args: [stakedTokenDeployResult.address, TOKEN[network.config.chainId].USDC],
+    // not valid for initial deploy
+    args: [
+      stakedTokenDeployResult.address,
+      TOKEN[network.config.chainId].USDC,
+      await getDeployedContract('MangoBondPool'),
+    ],
     proxy: {
       proxyContract: 'OpenZeppelinTransparentProxy',
       execute: {

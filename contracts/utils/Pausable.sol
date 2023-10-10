@@ -15,6 +15,13 @@ abstract contract Pausable is Ownable {
         _;
     }
 
+    modifier whenPaused() {
+        if (!paused) {
+            revert Errors.MangoError(Errors.PAUSED);
+        }
+        _;
+    }
+
     function pause() external onlyOwner {
         paused = true;
     }

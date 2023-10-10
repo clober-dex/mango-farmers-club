@@ -32,7 +32,7 @@ contract MangoTreasuryUnitTest is Test {
         vm.warp(INITIAL_BLOCK_TIMESTAMP);
         mangoStakedToken = IStakedToken(address(new MockStakedToken()));
         usdcToken = new MockUSDC(INITIAL_USDC_SUPPLY);
-        mangoUsdcTreasuryLogic = address(new MangoTreasury(address(mangoStakedToken), address(usdcToken)));
+        mangoUsdcTreasuryLogic = address(new MangoTreasury(address(mangoStakedToken), address(usdcToken), address(0)));
         mangoUsdcTreasury = MangoTreasury(
             address(
                 new TransparentUpgradeableProxy(
