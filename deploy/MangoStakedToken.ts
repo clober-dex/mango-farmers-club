@@ -51,7 +51,7 @@ const deployFunction: DeployFunction = async function (
     args: [
       stakedTokenDeployResult.address,
       TOKEN[network.config.chainId].USDC,
-      await getDeployedContract('MangoBondPool'),
+      (await getDeployedContract('MangoBondPool')).address,
     ],
     proxy: {
       proxyContract: 'OpenZeppelinTransparentProxy',
