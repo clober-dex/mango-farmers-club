@@ -20,7 +20,7 @@ contract MangoBondPoolIntegrationTest is Test {
     address constant MANGO_INITIAL_RECEIVER = 0x7D97304bcFC75E10def10db3A71d7FF76ce11bD0;
     address constant PROXY_ADMIN = address(0x1231241);
     uint256 constant CANCEL_FEE = 200000; // 20%
-    uint256 constant MAX_RELEASE_AMOUNT = 500_000_000 * (10**18);
+    uint256 constant MAX_RELEASE_AMOUNT = 500_000_000 * (10 ** 18);
     uint256 constant RELEASE_RATE_PER_SECOND = 11574074074074073088; // MAX_RELEASE_AMOUNT // (60 * 60 * 24 * 500)
     address constant BURN_ADDRESS = address(0xdead);
     uint16 constant INITIAL_BOND_PRICE_INDEX = 219; // log_1.01(0.000089 / 0.00001)
@@ -48,7 +48,7 @@ contract MangoBondPoolIntegrationTest is Test {
         stakedToken = MangoStakedToken(
             address(new TransparentUpgradeableProxy(stakedTokenLogic, PROXY_ADMIN, new bytes(0)))
         );
-        address treasuryLogic = address(new MangoTreasury(address(stakedToken), address(usdcToken)));
+        address treasuryLogic = address(new MangoTreasury(address(stakedToken), address(usdcToken), address(0)));
         treasury = MangoTreasury(
             address(
                 new TransparentUpgradeableProxy(
@@ -87,20 +87,16 @@ contract MangoBondPoolIntegrationTest is Test {
         usdcToken.approve(address(bondPool), type(uint256).max);
 
         // set user USDC balance
-        usdcToken.transfer(Constants.USER_A_ADDRESS, 1000 * (10**6));
+        usdcToken.transfer(Constants.USER_A_ADDRESS, 1000 * (10 ** 6));
         vm.startPrank(Constants.USER_A_ADDRESS);
         usdcToken.approve(address(bondPool), type(uint256).max);
         usdcToken.approve(address(router), type(uint256).max);
         vm.stopPrank();
 
-        mangoToken.transfer(address(bondPool), 1000000 * 10**18);
+        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
     }
 
-    function _createLimitOrder(
-        bool isBid,
-        uint16 priceIndex,
-        uint64 rawAmount
-    ) private returns (uint256) {
+    function _createLimitOrder(bool isBid, uint16 priceIndex, uint64 rawAmount) private returns (uint256) {
         if (isBid) {
             return
                 router.limitBid(
@@ -170,11 +166,7 @@ contract MangoBondPoolIntegrationTest is Test {
         assertEq(orderNFT.ownerOf(orderId), address(bondPool), "ERROR_ORDER_NFT_OWNER_OF");
     }
 
-    function _checkClaim(
-        address user,
-        OrderKey memory orderKey,
-        uint256 expectedClaimableRawAmount
-    ) private {
+    function _checkClaim(address user, OrderKey memory orderKey, uint256 expectedClaimableRawAmount) private {
         uint256 orderId = orderNFT.encodeId(orderKey);
         IBondPool.BondInfo memory bond = bondPool.bondInfo(orderId);
         assertEq(bond.isValid, true, "ERROR_BOND_IS_VALID");
@@ -236,7 +228,7 @@ contract MangoBondPoolIntegrationTest is Test {
 
         // A buy bond
         _checkPurchaseBond({
-            amount: 10**6,
+            amount: 10 ** 6,
             bonus: 5,
             user: Constants.USER_A_ADDRESS,
             expectedOrderIndex: 0,
@@ -244,7 +236,7 @@ contract MangoBondPoolIntegrationTest is Test {
         });
         // B buy bond
         _checkPurchaseBond({
-            amount: 10**6,
+            amount: 10 ** 6,
             bonus: 6,
             user: Constants.USER_B_ADDRESS,
             expectedOrderIndex: 0,
@@ -252,7 +244,7 @@ contract MangoBondPoolIntegrationTest is Test {
         });
         // C buy bond
         _checkPurchaseBond({
-            amount: 10**6,
+            amount: 10 ** 6,
             bonus: 7,
             user: Constants.USER_C_ADDRESS,
             expectedOrderIndex: 0,
@@ -330,7 +322,7 @@ contract MangoBondPoolIntegrationTest is Test {
         assertEq(bondPool.availableAmount(), RELEASE_RATE_PER_SECOND * 5000);
         // A buy bond
         _checkPurchaseBond({
-            amount: 10**6,
+            amount: 10 ** 6,
             bonus: 5,
             user: Constants.USER_A_ADDRESS,
             expectedOrderIndex: 0,
@@ -338,7 +330,7 @@ contract MangoBondPoolIntegrationTest is Test {
         });
         // B buy bond at the same price
         _checkPurchaseBond({
-            amount: 10**6,
+            amount: 10 ** 6,
             bonus: 5,
             user: Constants.USER_B_ADDRESS,
             expectedOrderIndex: 1,
@@ -371,7 +363,7 @@ contract MangoBondPoolIntegrationTest is Test {
 
         // A buy bond
         _checkPurchaseBond({
-            amount: 10**6,
+            amount: 10 ** 6,
             bonus: 5,
             user: Constants.USER_A_ADDRESS,
             expectedOrderIndex: 0,

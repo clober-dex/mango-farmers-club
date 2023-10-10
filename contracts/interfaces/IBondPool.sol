@@ -101,6 +101,8 @@ interface IBondPool {
 
     function breakBonds(uint256[] calldata orderIds) external;
 
+    function refund(uint256[] calldata orderIds) external;
+
     function withdrawLostERC20(address token, address to) external;
 
     function changeAvailableBonusRange(uint8 min, uint8 max) external;

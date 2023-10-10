@@ -20,13 +20,15 @@ contract MangoTreasury is ITreasury, Initializable, Ownable, Pausable, Reentranc
     address public immutable override stakedToken;
     address public immutable override rewardToken;
     uint256 private immutable _rewardTokenDecimalComplement;
+    address private immutable _bondPool;
 
     uint256 public override lastDistributedAt;
 
-    constructor(address stakedToken_, address rewardToken_) {
+    constructor(address stakedToken_, address rewardToken_, address bondPool_) {
         stakedToken = stakedToken_;
         rewardToken = rewardToken_;
         _rewardTokenDecimalComplement = 10 ** (18 - IERC20Metadata(rewardToken).decimals());
+        _bondPool = bondPool_;
     }
 
     function initialize(uint256 startsAt) external initializer {
@@ -71,6 +73,11 @@ contract MangoTreasury is ITreasury, Initializable, Ownable, Pausable, Reentranc
         distribute();
         IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), amount);
         emit Receive(msg.sender, amount);
+    }
+
+    function withdrawRewardByBondPool(uint256 amount, address to) external {
+        require(msg.sender == _bondPool);
+        IERC20(rewardToken).safeTransfer(to, amount);
     }
 
     function withdrawLostERC20(address token, address to) external onlyOwner {

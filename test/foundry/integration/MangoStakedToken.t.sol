@@ -30,7 +30,7 @@ contract MangoStakedTokenIntegrationTest is Test {
         stakedToken = MangoStakedToken(
             address(new TransparentUpgradeableProxy(stakedTokenLogic, PROXY_ADMIN, new bytes(0)))
         );
-        address treasuryLogic = address(new MangoTreasury(address(stakedToken), address(usdc)));
+        address treasuryLogic = address(new MangoTreasury(address(stakedToken), address(usdc), address(0)));
         treasury = MangoTreasury(
             address(
                 new TransparentUpgradeableProxy(
