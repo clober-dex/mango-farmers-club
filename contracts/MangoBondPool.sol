@@ -311,7 +311,7 @@ contract MangoBondPool is
         soldAmount += inputAmount;
     }
 
-    function claim(uint256[] calldata orderIds) public nonReentrant whenNotPaused {
+    function claim(uint256[] calldata orderIds) public nonReentrant {
         for (uint256 i = 0; i < orderIds.length; ++i) {
             uint256 claimedAmount;
             uint256 orderId = orderIds[i];
@@ -337,7 +337,7 @@ contract MangoBondPool is
         }
     }
 
-    function breakBonds(uint256[] calldata orderIds) external nonReentrant whenNotPaused {
+    function breakBonds(uint256[] calldata orderIds) external nonReentrant {
         OrderKey[] memory orderKeys = new OrderKey[](orderIds.length);
         for (uint256 i = 0; i < orderIds.length; ++i) {
             uint256 orderId = orderIds[i];
@@ -406,7 +406,13 @@ contract MangoBondPool is
     }
 
     function withdrawExceededUnderlyingToken(address receiver) external onlyOwner {
-        uint256 exceededAmount = IERC20(underlyingToken).balanceOf(address(this)) + soldAmount - maxReleaseAmount;
-        IERC20(underlyingToken).safeTransfer(receiver, exceededAmount);
+        uint256 thisBalance = IERC20(underlyingToken).balanceOf(address(this));
+        if (thisBalance + soldAmount > maxReleaseAmount) {
+            IERC20(underlyingToken).safeTransfer(receiver, thisBalance + soldAmount - maxReleaseAmount);
+        }
+    }
+
+    function withdrawAsDebt(address receiver, uint256 amount) external onlyOwner {
+        IERC20(underlyingToken).safeTransfer(receiver, amount);
     }
 }

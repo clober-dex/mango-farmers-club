@@ -493,20 +493,6 @@ contract MangoBondPoolUnitTest is Test {
         assertEq(orderNFT.balanceOf(Constants.USER_B_ADDRESS), 0, "ERROR_ORDER_NFT_BALANCE_OF");
     }
 
-    function testClaimWhenPause() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
-        vm.warp(block.timestamp + 3000);
-        vm.prank(Constants.USER_A_ADDRESS);
-        uint256 orderId = bondPool.purchaseBond(10 ** 6, 5, Constants.USER_A_ADDRESS, type(uint16).max);
-
-        uint256[] memory orderIds = new uint256[](1);
-        orderIds[0] = orderId;
-
-        bondPool.pause();
-        vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.PAUSED));
-        bondPool.claim(orderIds);
-    }
-
     function testNothingToClaim() public {
         mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
         vm.warp(block.timestamp + 3000);
@@ -736,20 +722,6 @@ contract MangoBondPoolUnitTest is Test {
         uint256 gainUsdcBalance = usdcToken.balanceOf(Constants.USER_A_ADDRESS) - beforeUsdcBalance;
         assertGt(gainUsdcBalance, (usdcAmount * (100 + bonus)) / 100);
         assertGt(gainUsdcBalance, (usdcAmount * (100 + bonus) * (100 + bonus)) / 10000);
-    }
-
-    function tesCancelWhenPaused() public {
-        mangoToken.transfer(address(bondPool), 1000000 * 10 ** 18);
-        vm.warp(block.timestamp + 3000);
-        vm.prank(Constants.USER_A_ADDRESS);
-        uint256 orderId = bondPool.purchaseBond(1000, 5, Constants.USER_A_ADDRESS, type(uint16).max);
-
-        bondPool.pause();
-        uint256[] memory orderIds = new uint256[](1);
-        orderIds[0] = orderId;
-        vm.prank(Constants.USER_B_ADDRESS);
-        vm.expectRevert(abi.encodeWithSelector(Errors.MangoError.selector, Errors.PAUSED));
-        bondPool.breakBonds(orderIds);
     }
 
     function testCancelRevertToAccess() public {

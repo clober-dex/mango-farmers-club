@@ -62,6 +62,7 @@ export type BondConfig = {
   startsAt: number
   sampleSize: number
 }
+
 export const BOND_CONFIG: { [network: string]: BondConfig } = {
   [hardhat.id]: {
     cancelFee: 200000,
@@ -90,7 +91,7 @@ export const BOND_CONFIG: { [network: string]: BondConfig } = {
     sampleSize: 10,
   },
   [polygonZkEvm.id]: {
-    cancelFee: 200000,
+    cancelFee: 0,
     market: CLOBER_MARKET[polygonZkEvm.id]['MANGO/USDC'],
     maxReleaseAmount: BigNumber.from(4).mul(BigNumber.from(10).pow(27)),
     releaseRate: BigNumber.from(4)
